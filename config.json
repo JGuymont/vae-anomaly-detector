@@ -1,0 +1,60 @@
+{
+	"data": {
+		"dir": "data",
+		"filename": "spam.csv",
+		"endogenous": [
+			"Close"
+		],
+		"exogenous": [
+			"Volume",
+			"Open"
+		],
+		"sequence_length": 10,
+		"train_test_split": 0.6,
+		"normalise": true
+	},
+	"training": {
+		"epochs": 100,
+		"batch_size": 64,
+		"learning_rate": 0.001
+	},
+	"model": {
+		"hidden_size": 128,
+		"loss": "mse",
+		"optimizer": "adam",
+		"save_dir": "saved_models",
+		"num_layers": 1,
+		"layers": [
+			{
+				"type": "lstm",
+				"neurons": 100,
+				"input_timesteps": 49,
+				"input_dim": 2,
+				"return_seq": true
+			},
+			{
+				"type": "dropout",
+				"rate": 0.2
+			},
+			{
+				"type": "lstm",
+				"neurons": 100,
+				"return_seq": true
+			},
+			{
+				"type": "lstm",
+				"neurons": 100,
+				"return_seq": false
+			},
+			{
+				"type": "dropout",
+				"rate": 0.2
+			},
+			{
+				"type": "dense",
+				"neurons": 1,
+				"activation": "linear"
+			}
+		]
+	}
+}
