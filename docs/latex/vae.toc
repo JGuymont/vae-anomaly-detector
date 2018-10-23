@@ -1,0 +1,5 @@
+\beamer@sectionintoc {1}{Autoencoder}{3}{0}{1}
+\beamer@sectionintoc {2}{Generative Model}{4}{0}{2}
+\beamer@sectionintoc {3}{RNN}{4}{0}{3}
+\beamer@sectionintoc {4}{Attention Mechanism}{4}{0}{4}
+\beamer@sectionintoc {5}{DRAW}{4}{0}{5}

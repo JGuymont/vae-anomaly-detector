@@ -1,0 +1,30 @@
+\headcommand {\slideentry {0}{0}{1}{1/1}{}{0}}
+\headcommand {\beamer@framepages {1}{1}}
+\headcommand {\slideentry {0}{0}{2}{2/2}{}{0}}
+\headcommand {\beamer@framepages {2}{2}}
+\headcommand {\beamer@sectionpages {1}{2}}
+\headcommand {\beamer@subsectionpages {1}{2}}
+\headcommand {\sectionentry {1}{Autoencoder}{3}{Autoencoder}{0}}
+\headcommand {\slideentry {1}{0}{1}{3/3}{}{0}}
+\headcommand {\beamer@framepages {3}{3}}
+\headcommand {\beamer@sectionpages {3}{3}}
+\headcommand {\beamer@subsectionpages {3}{3}}
+\headcommand {\sectionentry {2}{Generative Model}{4}{Generative Model}{0}}
+\headcommand {\beamer@sectionpages {4}{3}}
+\headcommand {\beamer@subsectionpages {4}{3}}
+\headcommand {\sectionentry {3}{RNN}{4}{RNN}{0}}
+\headcommand {\beamer@sectionpages {4}{3}}
+\headcommand {\beamer@subsectionpages {4}{3}}
+\headcommand {\sectionentry {4}{Attention Mechanism}{4}{Attention Mechanism}{0}}
+\headcommand {\beamer@sectionpages {4}{3}}
+\headcommand {\beamer@subsectionpages {4}{3}}
+\headcommand {\sectionentry {5}{DRAW}{4}{DRAW}{0}}
+\headcommand {\slideentry {5}{0}{1}{4/4}{}{0}}
+\headcommand {\beamer@framepages {4}{4}}
+\headcommand {\slideentry {5}{0}{2}{5/5}{}{0}}
+\headcommand {\beamer@framepages {5}{5}}
+\headcommand {\beamer@partpages {1}{5}}
+\headcommand {\beamer@subsectionpages {4}{5}}
+\headcommand {\beamer@sectionpages {4}{5}}
+\headcommand {\beamer@documentpages {5}}
+\headcommand {\gdef \inserttotalframenumber {5}}

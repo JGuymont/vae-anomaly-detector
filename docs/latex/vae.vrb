@@ -1,0 +1,6 @@
+\frametitle{Anomaly detection}
+\begin{minted}[bgcolor=LightGray, fontsize=\footnotesize]{python}
+import numpy
+def forward():
+    # fjdksjfksjfkls
+\end{minted}

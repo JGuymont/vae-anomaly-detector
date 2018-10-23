@@ -1,17 +1,34 @@
 \documentclass{beamer} 
-
+\usepackage[latin1]{inputenc}
 \usetheme{CambridgeUS}
+
+% page formating
+\setlength{\parindent}{0pt}
+
+% fonts
 \usefonttheme{professionalfonts}
 \usefonttheme[onlymath]{serif}
-\usepackage[latin1]{inputenc}
-\usepackage{times}
-\usepackage{amsmath}
+\usepackage{amsmath, bm}
+
+% ??
+%\usepackage{times}
+
+% code and psendocode
 \usepackage{verbatim}
-\usepackage{bm}
+\usepackage{minted}
+\usemintedstyle{trac}
+\usepackage{algorithm, algorithmic}
 
-% new command
+% colors
+\usepackage{xcolor}
+\definecolor{LightGray}{gray}{0.95}
+\definecolor{DarkGray}{gray}{0}
+
+% new commands
 \newcommand{\real}{\mathbb{R}}
+\newcommand{\code}[1]{{\small\colorbox{LightGray}{\texttt{#1}}}}
 
+% title page
 \title{Machine Learning Workshop 2}
 \subtitle{Variational Autoencoder}
 \author{Jonathan~Guymont}
@@ -23,7 +40,21 @@
     \end{frame}
 }
 
+\begin{document}
+
+\begin{frame}
+	\titlepage 
+\end{frame}
+
+\begin{frame}{Outline}
+	\tableofcontents
+\end{frame}
+
 \section{Autoencoder}
+
+\begin{frame}{Autoencoder}
+autoencoder 
+\end{frame}
 
 \section{Generative Model}
 
@@ -32,6 +63,30 @@
 \section{Attention Mechanism}
 
 \section{DRAW}
+
+\begin{frame}{Anomaly detection}  
+\begin{algorithm}[H]
+	\begin{algorithmic}
+		\REQUIRE Learning rate $\epsilon_k$
+		\REQUIRE Initial parameter $\bm{w}_0$
+		\REQUIRE Number of epochs $T$
+		\FOR{$i=1$ to $T$}
+		\STATE Compute gradient $\bm{g}_t=\frac{1}{m}\nabla_w\sum_i L(h_{w_{t-1}}(\bm{x}^{(i)}), \bm{y}^{(i)})$ 
+		\STATE Apply update: $\bm{w}_t=\bm{w}_{t-1}-\epsilon \bm{g}_t$
+		\ENDFOR
+	\end{algorithmic}
+	\caption{Pseudocode for Batch Gradient Descent}
+	\label{alg:seq}
+\end{algorithm}
+\end{frame}
+
+\begin{frame}[fragile]{Anomaly detection}
+\begin{minted}[bgcolor=LightGray, fontsize=\footnotesize]{python}
+import numpy
+def forward():
+    # fjdksjfksjfkls
+\end{minted}
+\end{frame}
 
 
 
