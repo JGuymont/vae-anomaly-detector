@@ -53,15 +53,19 @@
 \section{Autoencoders}
 
 \begin{frame}{Autoencoders}
-Autoencoers are neural network that are trained to learn how to map their input to their input. Internally, it has an hidden layer $\bm{h}$ that contains a lossy summary of the relevant feature for the task.\\
-
+Autoencoers are neural network that are trained to learn how to map their input to their input. Internally, it has an hidden layer $\bm{h}$ that contains a lossy summary of the relevant feature for the task.
+\end{frame}
+ 
+\begin{frame}{Autoencoders}
 An autoencoder can be seen has a two parts network
 \begin{itemize}
 	\item Encoder function: $\bm{h}=f(\bm{x})$
 	\item Decoder function: $\tilde{\bm{x}} = g(\bm{h})$
 \end{itemize}
+\end{frame}
 
-The simplest autoencoder is a MLP:
+\begin{frame}{Autoencoders}
+The simplest autoencoder is a one layer MLP:
 \begin{equation}
 \begin{split}
 \bm{h} =& \sigma_1\left(W_{xh}x\right)\\
@@ -69,8 +73,17 @@ The simplest autoencoder is a MLP:
 \end{split}
 \end{equation}
 \end{frame}
- 
+
+\begin{frame}[fragile]{Pytorch autoencoder}
+\begin{minted}[bgcolor=LightGray, fontsize=\footnotesize]{python}
+import numpy
+def forward():
+# fjdksjfksjfkls
+\end{minted}
+\end{frame}
+
 \section{Generative Model}
+
 
 \section{Variational autoencoder}
 

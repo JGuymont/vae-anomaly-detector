@@ -3,12 +3,33 @@ import string
 from io import open
 import pandas as pd
 
+from sklearn.feature_extraction.text import CountVectorizer
+
 class Data:
+    PONCTUATION = [',', '.', ';', ':', '?', '!']
+
+    def __init__(self, path, ponctuation=PONCTUATION, **kargs):
+        self._ponctuation = ponctuation
+        self._data = self._read_data(path)
+        self.preprocessed_data = self._preprocess_data()
+
+    def __len__(self):
+        return len(self._inputs)
     
-    def __init__(self):
-        self.ponctuation = [',', '.', ';', ':', "'", '?', '!']
-    
-    def extract_target(self, line):
+    def __getitem__(self):
+
+    def _read_data(self, path):
+        with open(path) as f:
+            lines = [line for line in f]
+        data = []
+        for line in lines:
+            y, x = self._preprocess_line(line)
+            targets.append(y)
+            inputs.append(x)    
+        return inputs, targets
+        return data[1:]
+
+    def _extract_target(self, line):
         if line[0:3] == 'ham':
             target = 0
             line = line[4:]
@@ -18,28 +39,49 @@ class Data:
         else:
             exit('line do not have a valid target')
         return target, line
-    
-    def remove_comma(self, line):
-        return line.replace(',', " ")
-    
-    def remove_dot(self, line):
-        return line.replace('.', " ")
-    
-    def remove_apostrophe(self, line):
-        return line.replace("'", " ")
 
-    def remove_semicolon(self, line):
-        return line.replace(";", " ")
+    def _preprocess_line(self, line):
+        target, line = self._extract_target(line)
+        #line = self._unicode_to_ascii(line)
+        #line = self._remove_ponctuation(line)
+        #line = line.lower()
+        return target, line
 
-    def remove_colon(self, line):
-        return line.replace(":", " ")
+    def _preprocess_data(self): 
+        inputs = []
+        targets = []
+        for line in self._data:
+            y, x = self._preprocess_line(line)
+            targets.append(y)
+            inputs.append(x)    
+        return inputs, targets
+
+class DataLoader(CountVectorizer):
     
-    def remove_ponctuation(self, line):
-        for i in self.ponctuation:
+    PONCTUATION = [',', '.', ';', ':', '?', '!']
+
+    def __init__(self, path, ponctuation=PONCTUATION, **kargs):
+        self._ponctuation = ponctuation
+        self._data = self._read_data(path)
+        self.preprocessed_data = self._preprocess_data()
+    
+        super().__init__(self, **kargs)
+
+        self.vectorized_data = self.fit_transform(self.preprocessed_data[0])
+
+    def _read_data(self, path):
+        with open(path) as f:
+            data = [line for line in f]
+        return data[1:]
+    
+    
+    
+    def _remove_ponctuation(self, line):
+        for i in self._ponctuation:
             line = line.replace(i, " ")
         return line
 
-    def unicode_to_ascii(self, line):
+    def _unicode_to_ascii(self, line):
         # Turn a Unicode string to plain ASCII.
         # thanks to http://stackoverflow.com/a/518232/2809427
         
@@ -51,25 +93,30 @@ class Data:
             and c in ALL_LETTERS
         )
 
-    def preprocess(self, line):
-        target, line = self.extract_target(line)
-        line = self.remove_ponctuation(line)
-        line = self.unicode_to_ascii(line)
-        line = line.lower()
-        return target, line.split()
+    def _preprocess_line(self, line):
+        target, line = self._extract_target(line)
+        #line = self._unicode_to_ascii(line)
+        #line = self._remove_ponctuation(line)
+        #line = line.lower()
+        return target, line
+    
+    def _preprocess_data(self):
+        inputs = []
+        targets = []
+        for line in self._data:
+            y, x = self._preprocess_line(line)
+            targets.append(y)
+            inputs.append(x)    
+        return inputs, targets
 
-def read_csv(path):
+    def bow_to_string(self, bow):
+        string = ''
+        for i in bow:
+            curr_word = self.vocabulary_[i]
+            string += '{} '.format(curr_word)
+        return string
 
-    inputs = []
-    targets = []
 
-    data = Data()
-    with open(path) as f:
-        lines = [line for line in f]
 
-    for line in lines[1:]:
-        y, x = data.preprocess(line)
-        targets.append(y)
-        inputs.append(x)    
-    return inputs, targets
+    
     

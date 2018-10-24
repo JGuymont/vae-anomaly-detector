@@ -1,0 +1,5 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k+kn}{import} \PYG{n+nn}{numpy}
+\PYG{k}{def} \PYG{n+nf}{forward}\PYG{p}{():}
+\PYG{c+c1}{\PYGZsh{} fjdksjfksjfkls}
+\end{Verbatim}
