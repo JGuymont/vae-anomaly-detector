@@ -26,6 +26,11 @@
 
 % new commands
 \newcommand{\real}{\mathbb{R}}
+\newcommand{\bernoulli}{\mathrm{Bernoulli}}
+\newcommand{\relu}{\mathrm{relu}}
+\newcommand{\kldiv}{\mathcal{D}_{KL}}
+\newcommand{\E}{\mathrm{E}}
+
 \newcommand{\code}[1]{{\small\colorbox{LightGray}{\texttt{#1}}}}
 
 % title page
@@ -55,43 +60,319 @@
 \begin{frame}{Autoencoders}
 Autoencoers are neural network that are trained to learn how to map their input to their input. Internally, it has an hidden layer $\bm{h}$ that contains a lossy summary of the relevant feature for the task.
 \end{frame}
- 
+  
 \begin{frame}{Autoencoders}
 An autoencoder can be seen has a two parts network
 \begin{itemize}
-	\item Encoder function: $\bm{h}=f(\bm{x})$
-	\item Decoder function: $\tilde{\bm{x}} = g(\bm{h})$
+	\item Encoder function: $\bm{z}=f(\bm{x})$
+	\item Decoder function: $\tilde{\bm{x}} = g(\bm{z})$
 \end{itemize}
 \end{frame}
 
 \begin{frame}{Autoencoders}
-The simplest autoencoder is a one layer MLP:
-\begin{equation}
-\begin{split}
-\bm{h} =& \sigma_1\left(W_{xh}x\right)\\
-\tilde{x} =& \sigma_2\left(W_{hx}\bm{h}\right) 
-\end{split}
-\end{equation}
+	The simplest autoencoder is a one layer MLP:
+	\huge
+	\begin{equation}
+	\begin{split}
+		\bm{z} =& \sigma_1\left(W_{xz}x+b_{xz}\right)\\
+		\tilde{x} =& \sigma_2\left(W_{zx}\bm{z}+b_{zx}\right) 
+	\end{split}
+	\end{equation}
 \end{frame}
 
-\begin{frame}[fragile]{Pytorch autoencoder}
+\begin{frame}[fragile]{Pytorch simple autoencoder}
 \begin{minted}[bgcolor=LightGray, fontsize=\footnotesize]{python}
-import numpy
-def forward():
-# fjdksjfksjfkls
+class Autoencoder:
+	def __init__(self, **kargs):
+	    """constructor"""
+	    pass
+	
+	def encoder(self, x):
+	    pass
+	
+	def decoder(self, z)
+	    pass
+	    
+	def forward(self, x):
+	    pass
 \end{minted}
 \end{frame}
 
-\section{Generative Model}
+\begin{frame}[fragile]{Pytorch simple autoencoder}
+\begin{minted}[bgcolor=LightGray, fontsize=\footnotesize]{python}
+class Autoencoder:
+    def __init__(self, x_dim, z_dim):
+        # encoder parameters
+        self.Wxz = xavier_init(size=[x_dim, z_dim])
+        self.bxz = Variable(torch.zeros(z_dim), requires_grad=True)
+        # decoder parameters
+        self.Wzx = xavier_init(size=[h_dim, x_dim])
+        self.bzx = Variable(torch.zeros(x_dim), requires_grad=True)
 
+    def encoder(self, x):
+        ...
+	
+    def decoder(self, z):
+        ...
+    
+    def forward(self, x):
+        ...
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]{Pytorch simple autoencoder}
+\begin{minted}[bgcolor=LightGray, fontsize=\footnotesize]{python}
+class Autoencoder:
+    def __init__(self, x_dim, z_dim):
+        ...
+	
+    def encoder(self, x):
+        z = F.relu(x @ self.Wxh + self.bxh.repeat(x.size(0), 1))
+        return z
+        
+    def decoder(self, z):
+        ...
+	
+    def forward(self, x):
+	    ...
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]{Pytorch simple autoencoder}
+\begin{minted}[bgcolor=LightGray, fontsize=\footnotesize]{python}
+class Autoencoder:
+    def __init__(self, x_dim, z_dim):
+        ...
+	
+    def encoder(self, x):
+        ...
+	
+    def decoder(self, z):
+        x_recon = F.sigmoid(z @ self.Wzx + self.bzx.repeat(z.size(0), 1))
+        return x_recon
+	
+    def forward(self, x):
+        ...
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]{Pytorch simple autoencoder}
+\begin{minted}[bgcolor=LightGray, fontsize=\footnotesize]{python}
+class Autoencoder:
+    def __init__(self, x_dim, z_dim):
+        ...
+	
+    def encoder(self, x):
+        ...
+	
+    def decoder(self, z):
+        ...
+	
+    def forward(self, x):
+        z = self.encoder(x)
+        x_recon = self.decoder(z)
+        return x_recon
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]{Pytorch simple autoencoder}
+\begin{minted}[bgcolor=LightGray, fontsize=\tiny]{python}
+class Autoencoder:
+    def __init__(self, x_dim, z_dim):
+        # encoder parameters
+        Wxz = xavier_init(size=[x_dim, z_dim])
+        bxz = Variable(torch.zeros(z_dim), requires_grad=True)
+        # decoder parameters
+        Wzx = xavier_init(size=[h_dim, x_dim])
+        bzx = Variable(torch.zeros(X_dim), requires_grad=True)
+    
+    def encoder(self, x):
+        z = F.relu(x @ self.Wxh + self.bxh.repeat(x.size(0), 1))
+        return z
+    
+    def decoder(self, z):
+        x_recon = F.sigmoid(z @ self.Wzx + self.bzx.repeat(z.size(0), 1))
+        return x_recon
+    
+    def forward(self, x):
+        z = self.encoder(x)
+        x_recon = self.decoder(z)
+        return x_recon
+\end{minted}
+\end{frame}
+
+\begin{frame}{Autoencoder - Loss Function}
+If you treat the problem like a \textit{regression}\footnote{If you do regression, you don't have to apply sigmoid in the decoder.}, use the mean square error between the input and the reconstruction
+\begin{equation}
+	\mathcal{L} = \sum_{i=1}^d (x_i-\tilde{x}_i)^2
+\end{equation}
+If you treat the problem like a \textit{density estimation}, use minus the loglikelihood of the reconstruction
+\begin{equation}
+\mathcal{L} = -\sum_{i=1}^d x_i\log\tilde{x}_i + (1-x_i)\log(1-\tilde{x}_i) 
+\end{equation}
+\end{frame}
+
+\begin{frame}{Negative Loglikelihood Loss}
+Recall that the density of a Bernoulli distribution is given by 
+\begin{equation}
+\bernoulli(x;p) = p^x(1-p)^{1-x}
+\end{equation}
+where $p\equiv p(x=1)$.
+\end{frame}
+
+\begin{frame}{Negative Loglikelihood Loss}
+If your have binary features, i.e. $x_i\in \{0,1\}$ for $i=1,...,d$, then the output of the decoder can be interpreted has the parameter of a Bernoulli. Thus the likelihood of the input $x$ can be compute has 
+\begin{equation}
+p(x|z)=\prod_{i=1}^dp(x_i|z) = \prod_{i=1}^d\tilde{x}_i^{x_i}(1-\tilde{x}_i)^{1-x_i}
+\end{equation}
+Note that this works only if $\tilde{x}_i\in (0, 1)$. To ensure it, apply sigmoid element wise on the output of the decoder.
+\end{frame}
+
+\begin{frame}{Negative Loglikelihood Loss}
+If your don't have binary features, e.g. $x_i\in \real$ for $i=1,...,d$, you need to binarize your input. 
+\end{frame}
+
+\section{Anomaly detection and autoencoder}
+\begin{frame}{Anomaly detection and autoencoder}
+Some anomaly detection methods:
+\begin{itemize}
+	\item Statistical: A data point is defined as an anomaly if the density of it being generated from the model is below a threshold
+	\item Proximity based: A data point is defined as an anomaly if it is \textit{islolated} (e.g. far from clusters centroid)
+	\item Deviation based: Use reconstruction error to detect anomaly (e.g. $k$-most significant principle component (PCA) and autoencoders based methods)
+\end{itemize}
+\end{frame}
 
 \section{Variational autoencoder}
 
-\section{RNN}
+\begin{frame}{Variational autoencoder}
+Similar architecture as the autoencoder.\\
 
-\section{Attention Mechanism}
+Major difference
+\begin{itemize}
+	\item The latent variable $\bm{z}$ is random
+	\item The marginal likelihood $p(X)$ is maximized
+	\item The distribution $p(\bm{x})$ is learned
+\end{itemize}
+\end{frame}
 
-\section{DRAW}
+\begin{frame}[fragile]{Variational autoencoder}
+\begin{itemize}
+	\item Encoder network: $q_\phi(z|x)=q(z;f(x,\phi))$
+	\item Example: Gaussian MLP as encoder
+	\begin{itemize}
+		\item $q_\phi(z|x)=N(z;\mu, \sigma^2)$
+		\item $\mu = h W^{(1)}_{hz}+b^{(1)}_{hz}$
+		\item $\log \sigma^2 = h W^{(2)}_{hz}+b^{(2)}_{hz}$
+		\item $h = \relu\left(x W_{xh}+b_{xh}\right)$
+	\end{itemize}
+\end{itemize}
+\begin{minted}[bgcolor=LightGray, fontsize=\footnotesize]{python}
+class VAE:
+    ...
+    def encoder(self, x):
+        # Encoder network. Find the parameter of q(z|x)
+        h = relu(x @ self.Wxh + self.bxh.repeat(x.size(0), 1))  
+        mu = h @ self.Whz_mu + self.bhz_mu.repeat(x.size(0), 1)      
+        log_var = h @ self.Whz_var + self.bhz_var.repeat(x.size(0), 1)
+        reture mu, log_var
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]{Variational autoencoder}
+\begin{itemize}
+	\item Decoder network: $p_\theta(x|z)=p(x;g(z,\theta))$
+	\item Example: Bernoulli MLP as decoder
+	\begin{itemize}
+		\item $p_\theta(x|z)=\bernoulli(x;\bm{\gamma})$
+		\item $\gamma = \sigma\left(W_{zx}h+b_{zx}\right)$
+		\item $h = \relu\left(W_{zh}x+b_{zh}\right)$
+	\end{itemize}
+\end{itemize}
+\begin{minted}[bgcolor=LightGray, fontsize=\footnotesize]{python}
+class VAE:
+    ...
+    def decoder(self, z):
+        """Decoder network. Reconstruct the input from the latent 
+    	variable z"""
+        h = relu(z @ self.Whx + self.bhx.repeat(x.size(0), 1))  
+        gamma = h @ self.Whx_mu + self.bhx.repeat(x.size(0), 1)      
+        reture gamma
+\end{minted}
+\end{frame}
+
+\begin{frame}{Variational autoencoder}
+\begin{itemize}
+	\item Encoder network: $q_\phi(z|x)=q(z;f(x,\phi))$
+	\item Decoder network: $p_\theta(x|z)=p(x;g(z,\theta))$
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Latent variable models}
+We want to maximize the probability of each $x$ in the training set according to
+\[
+	p(x) = \int p_\theta (x|z) p(z) dz = \E_{z\sim p(z)} p_\theta(x|z)
+\]
+
+We need to make a choice for the distribution of $z$ and $x|z$: 
+\begin{itemize}
+	\item typical choice for $z$ is $z\sim N(z;0, \bm{I})$
+	\item typical choices for $x|z$ are $x|z\sim N(x;\mu(z), \sigma(z))$ and $x|z\sim \bernoulli(x;\bm{\gamma}(z))$
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Latent variable models}
+$\theta$ is a set of learn parameters. \\
+
+Given $z\sim N(z;0,I)$, $\tilde{x}\sim p_\theta(x|z)$ should such that $\tilde{x}\approx x$\\
+
+Generating a sample from a VAE model
+\begin{itemize}
+	\item $z\sim p(z)$
+	\item $x\sim p_\theta(x|z)$
+	\end{itemize}
+\end{frame}
+
+\begin{frame}{Training VAE}
+We need $p_\theta(x|z)$ to be such that the marginal likelihood $p(x)$ is maximized. \\
+
+In other word the lost function should be
+\[
+	-\log p(x^{(1)},...,x^{(N)}) = -\sum_{i=1}^N \log p(x^{(i)})
+\]
+\end{frame}
+
+\begin{frame}{Training VAE}
+The prior of the latent space can be writen has
+\[
+	p(z) = \int p(z|x) p(x) dx
+\]
+We can sample $z$ by sampling $x'\sim p(x)$ and then $z\sim p(z|x')$. Also the training set comes from $p(x)$ so why not sample from it! This will reduce the space of the latent variable a lot and allow the model to learn efficiently.
+\end{frame}
+
+\begin{frame}{Training VAE}
+Problem: $p(z|x)$ is intractable. Let's use an approximation: $q(z|x)$
+\end{frame}
+
+\begin{frame}{Training VAE}
+Now let's compute de Kullback-Leibler divergence $\kldiv$ between $p(z|x)$ and $q(z|x)$
+\scriptsize
+\begin{equation*}
+\begin{split}
+	\kldiv[q(z|x)||p(z|x)] 
+	=& \E_{z\sim q(z|x)}[ \log q(z|x) - \log p(z|x)]\\
+	=& \E_{z\sim q(z|x)}[ \log q(z|x) - \log p(x|z) - \log p(z) + \log p(x)]\\
+	=& \log p(x) + \E_{z\sim q(z|x)}[ \log q(z|x)  - \log p(z)] - \E_{z\sim q(z|x)}\log p(x|z)\\
+	=& \log p(x) - \kldiv[q(z|x)||p(z|x)] - \E_{z\sim q(z|x)}\log p(x|z)\\
+\end{split}
+\end{equation*}
+\footnotesize
+\begin{equation}
+\begin{split}
+	\log p(x) - \kldiv[q(z|x)||\log p(z|x)] =& \E_{z\sim q(z|x)}\log p(x|z)- \kldiv[q(z|x)||p(z)]\\
+	\log p(x)  \geq& \E_{z\sim q(z|x)}\log p(x|z)- \kldiv[q(z|x)||p(z)]
+\end{split}
+\end{equation}
+\end{frame}
 
 \begin{frame}{Anomaly detection}  
 \begin{algorithm}[H]
