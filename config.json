@@ -1,7 +1,7 @@
 {
 	"data": {
 		"dir": "data",
-		"filename": "spam.csv",
+		"filename": "smsSpamCollection.csv",
 		"endogenous": [
 			"Close"
 		],

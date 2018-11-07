@@ -1,0 +1,10 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k}{class} \PYG{n+nc}{VAE}\PYG{p}{:}
+    \PYG{o}{...}
+    \PYG{k}{def} \PYG{n+nf}{decoder}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{,} \PYG{n}{z}\PYG{p}{):}
+        \PYG{c+c1}{\PYGZsh{} Decoder network. Reconstruct the input from}
+        \PYG{c+c1}{\PYGZsh{} the latent variable z}
+        \PYG{n}{h} \PYG{o}{=} \PYG{n}{relu}\PYG{p}{(}\PYG{n}{z} \PYG{err}{@} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{Whx} \PYG{o}{+} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{bhx}\PYG{o}{.}\PYG{n}{repeat}\PYG{p}{(}\PYG{n}{x}\PYG{o}{.}\PYG{n}{size}\PYG{p}{(}\PYG{l+m+mi}{0}\PYG{p}{),} \PYG{l+m+mi}{1}\PYG{p}{))}
+        \PYG{n}{gamma} \PYG{o}{=} \PYG{n}{h} \PYG{err}{@} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{Whx\PYGZus{}mu} \PYG{o}{+} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{bhx}\PYG{o}{.}\PYG{n}{repeat}\PYG{p}{(}\PYG{n}{x}\PYG{o}{.}\PYG{n}{size}\PYG{p}{(}\PYG{l+m+mi}{0}\PYG{p}{),} \PYG{l+m+mi}{1}\PYG{p}{)}
+        \PYG{n}{reture} \PYG{n}{gamma}
+\end{Verbatim}
