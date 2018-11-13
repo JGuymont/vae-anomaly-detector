@@ -2,10 +2,8 @@
 \PYG{k}{class} \PYG{n+nc}{Autoencoder}\PYG{p}{:}
     \PYG{k}{def} \PYG{n+nf+fm}{\PYGZus{}\PYGZus{}init\PYGZus{}\PYGZus{}}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{,} \PYG{n}{x\PYGZus{}dim}\PYG{p}{,} \PYG{n}{z\PYGZus{}dim}\PYG{p}{):}
         \PYG{o}{...}
-	
     \PYG{k}{def} \PYG{n+nf}{encoder}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{,} \PYG{n}{x}\PYG{p}{):}
         \PYG{o}{...}
-	
     \PYG{k}{def} \PYG{n+nf}{decoder}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{,} \PYG{n}{z}\PYG{p}{):}
         \PYG{n}{x\PYGZus{}recon} \PYG{o}{=} \PYG{n}{F}\PYG{o}{.}\PYG{n}{sigmoid}\PYG{p}{(}\PYG{n}{z} \PYG{err}{@} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{Wzx} \PYG{o}{+} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{bzx}\PYG{o}{.}\PYG{n}{repeat}\PYG{p}{(}\PYG{n}{z}\PYG{o}{.}\PYG{n}{size}\PYG{p}{(}\PYG{l+m+mi}{0}\PYG{p}{),} \PYG{l+m+mi}{1}\PYG{p}{))}
         \PYG{k}{return} \PYG{n}{x\PYGZus{}recon}

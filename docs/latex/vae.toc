@@ -1,3 +1,4 @@
+\babel@toc {english}{}
 \beamer@sectionintoc {1}{Autoencoders}{3}{0}{1}
 \beamer@sectionintoc {2}{Variational autoencoder}{16}{0}{2}
-\beamer@sectionintoc {3}{Anomaly detection and autoencoder}{27}{0}{3}
+\beamer@sectionintoc {3}{Anomaly detection and autoencoder}{34}{0}{3}

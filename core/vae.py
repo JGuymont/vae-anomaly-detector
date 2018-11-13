@@ -8,8 +8,17 @@ from torch import nn
 
 
 class Encoder(nn.Module):
-    """
-    Encoder, x --> mu, log_sigma_sq
+    """Probabilistic Encoder
+
+    Return the mean and the variance of z ~ q(z|x). The prior
+    of x is assume to be normal(0, I). 
+    
+    Args
+        x_dim:
+        h_dim:
+        z_dim:
+
+    Return: (mu_z, log_var_z)
     """
 
     def __init__(self, x_dim, h_dim, z_dim):
@@ -23,11 +32,18 @@ class Encoder(nn.Module):
         self._initialize_parameters()
 
     def _initialize_parameters(self):
+        """Parameter initialization
+
+            W ~ U[-1 / nc, 1/ nc]
+        
+        where nc is the number of neuros on the 
+        previous layer. The bias are initialize at
+        0.
+        """
         for layer in self.modules():
             if isinstance(layer, nn.Linear):
-                nc = layer.in_features
-                stdv = 1/np.sqrt(nc)
-                layer.weight.data.uniform_(-stdv, stdv)
+                bound = 1/np.sqrt(layer.in_features)
+                layer.weight.data.uniform_(-bound, bound)
                 layer.bias.data.zero_()
 
     def forward(self, inputs):
@@ -39,8 +55,7 @@ class Encoder(nn.Module):
 
 
 class Decoder(nn.Module):
-    """
-    Decoder, N(mu, log_sigma_sq) --> z --> x
+    """Decoder Decoder
     """
     def __init__(self, x_dim, h_dim, z_dim):
         super(Decoder, self).__init__()
@@ -85,17 +100,21 @@ class VAE(nn.Module):
         )
         self._bce_loss = torch.nn.BCELoss(reduction='sum')
         self._num_epochs = 100
+        
+        self.mu = None 
+        self.log_var = None
 
     def parameters(self):
         return chain(self._encoder.parameters(), self._decoder.parameters())
 
     def _sample_z(self, mu, log_var):
-        epsilon = Variable(torch.randn(mu.size()), requires_grad=False).type(torch.FloatTensor).to(self._device)
+        epsilon = torch.randn(mu.size())
+        epsilon = Variable(epsilon, requires_grad=False).type(torch.FloatTensor).to(self._device)
         sigma = torch.exp(log_var / 2)
         return mu + sigma * epsilon
 
-    def forward(self, input):
-        self.mu, self.log_var = self._encoder(input)
+    def forward(self, inputs):
+        self.mu, self.log_var = self._encoder(inputs)
         z = self._sample_z(self.mu, self.log_var)
         x = self._decoder(z)
         return x
@@ -107,6 +126,7 @@ class VAE(nn.Module):
         for epoch in range(self._num_epochs):
             if epoch >= 1:
                 print("\n[%2.2f]" % (time.time() - t0), end="\n")
+            
             t0 = time.time()
 
             for step, (inputs, _) in enumerate(dataloader, 0):
@@ -119,11 +139,11 @@ class VAE(nn.Module):
                 batch_size = inputs.size(0)
 
                 x = inputs.to(self._device)
-                x_recon = self.forward(x)
+                gamma = self.forward(x)
 
-                recon_loss = self._bce_loss(x_recon+self._eps, x) / batch_size
-                loss_kl = torch.mean(.5 * torch.sum(self.mu**2 + torch.exp(self.log_var) - 1 - self.log_var, 1))
-                loss = recon_loss + loss_kl
+                log_likelihood = self._bce_loss(gamma+self._eps, x) / batch_size
+                kl_divirgence = torch.mean(.5 * torch.sum(self.mu**2 + torch.exp(self.log_var) - 1 - self.log_var, 1))
+                loss = log_likelihood + kl_divirgence
                 
                 loss.backward()
 

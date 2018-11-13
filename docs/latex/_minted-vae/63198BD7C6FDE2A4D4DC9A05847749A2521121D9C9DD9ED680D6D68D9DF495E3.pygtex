@@ -1,0 +1,4 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{c+c1}{\PYGZsh{} in pytorch}
+\PYG{n}{loss} \PYG{o}{=} \PYG{n}{functional}\PYG{o}{.}\PYG{n}{binary\PYGZus{}cross\PYGZus{}entropy}\PYG{p}{(}\PYG{n}{param}\PYG{p}{,} \PYG{n}{x}\PYG{p}{)}
+\end{Verbatim}

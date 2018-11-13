@@ -1,0 +1,8 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k}{class} \PYG{n+nc}{VAE}\PYG{p}{:}
+\PYG{o}{...}
+\PYG{k}{def} \PYG{n+nf}{\PYGZus{}sample\PYGZus{}z}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{,} \PYG{n}{mu}\PYG{p}{,} \PYG{n}{log\PYGZus{}var}\PYG{p}{):}
+    \PYG{n}{epsilon} \PYG{o}{=} \PYG{n}{Variable}\PYG{p}{(}\PYG{n}{torch}\PYG{o}{.}\PYG{n}{randn}\PYG{p}{(}\PYG{n}{mu}\PYG{o}{.}\PYG{n}{size}\PYG{p}{())}\PYG{o}{.}\PYG{n}{to}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{\PYGZus{}device}\PYG{p}{)}
+    \PYG{n}{sigma} \PYG{o}{=} \PYG{n}{torch}\PYG{o}{.}\PYG{n}{exp}\PYG{p}{(}\PYG{n}{log\PYGZus{}var} \PYG{o}{/} \PYG{l+m+mi}{2}\PYG{p}{)}
+    \PYG{k}{return} \PYG{n}{mu} \PYG{o}{+} \PYG{n}{sigma} \PYG{o}{*} \PYG{n}{epsilon}
+\end{Verbatim}

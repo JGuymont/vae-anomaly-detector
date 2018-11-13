@@ -1,6 +1,12 @@
-\frametitle{Anomaly detection}
+\frametitle{Training VAE}
+\begin{equation}
+\begin{split}
+\kldiv[q(x)||p(x)] =& (\ref{eq:klgauss1})-(\ref{eq:klgauss2})\\
+=& \frac{1}{2}\sum \mu_j^2 + \sigma_j^2 - 1 - \log \sigma_j^2
+\end{split}
+\end{equation}
 \begin{minted}[bgcolor=LightGray, fontsize=\footnotesize]{python}
-import numpy
-def forward():
-    # fjdksjfksjfkls
+def kl_divergence(mu, log_sigma):
+    sigma = torch.exp(log_sigma)
+    return .5 * torch.sum(mu**2 + sigma**2 - 1 - 2*log_sigma, axis=1)
 \end{minted}

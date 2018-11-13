@@ -1,5 +1,6 @@
 \documentclass{beamer} 
 \usepackage[latin1]{inputenc}
+\usepackage[english]{babel}
 \usetheme{CambridgeUS}
 
 % page formating
@@ -28,9 +29,10 @@
 \newcommand{\real}{\mathbb{R}}
 \newcommand{\bernoulli}{\mathrm{Bernoulli}}
 \newcommand{\relu}{\mathrm{relu}}
+\newcommand{\sig}{\mathrm{sigmoid}}
 \newcommand{\kldiv}{\mathcal{D}_{KL}}
 \newcommand{\E}{\mathrm{E}}
-
+\newcommand{\encoder}{\mathrm{encoder}}
 \newcommand{\code}[1]{{\small\colorbox{LightGray}{\texttt{#1}}}}
 
 % title page
@@ -64,18 +66,19 @@ Autoencoers are neural network that are trained to learn how to map their input 
 \begin{frame}{Autoencoders}
 An autoencoder can be seen has a two parts network
 \begin{itemize}
-	\item Encoder function: $\bm{z}=f(\bm{x})$
-	\item Decoder function: $\tilde{\bm{x}} = g(\bm{z})$
+	\item Encoder function: $\bm{z}=f_\phi(\bm{x})$
+	\item Decoder function: $\tilde{\bm{x}} = g_\theta(\bm{z})$
+	\item $\phi$ and $\theta$ are set of learned parameters
 \end{itemize}
 \end{frame}
 
 \begin{frame}{Autoencoders}
 	The simplest autoencoder is a one layer MLP:
-	\huge
+	\Large
 	\begin{equation}
 	\begin{split}
-		\bm{z} =& \sigma_1\left(W_{xz}x+b_{xz}\right)\\
-		\tilde{x} =& \sigma_2\left(W_{zx}\bm{z}+b_{zx}\right) 
+		\mathbf{z} =& \relu\left(\mathbf{W}_{xz}\mathbf{x}+\mathbf{b}_{xz}\right)\\
+		\tilde{\mathbf{x}} =& \sig\left(\mathbf{W}_{zx}\mathbf{z}+\mathbf{b}_{zx}\right) 
 	\end{split}
 	\end{equation}
 \end{frame}
@@ -98,55 +101,58 @@ class Autoencoder:
 \end{minted}
 \end{frame}
 
-\begin{frame}[fragile]{Pytorch simple autoencoder}
+\begin{frame}[fragile]{Parameter initialization}
 \begin{minted}[bgcolor=LightGray, fontsize=\footnotesize]{python}
 class Autoencoder:
     def __init__(self, x_dim, z_dim):
-        # encoder parameters
+        # encoder parameters \phi
         self.Wxz = xavier_init(size=[x_dim, z_dim])
         self.bxz = Variable(torch.zeros(z_dim), requires_grad=True)
-        # decoder parameters
-        self.Wzx = xavier_init(size=[h_dim, x_dim])
+        # decoder parameters \theta
+        self.Wzx = xavier_init(size=[z_dim, x_dim])
         self.bzx = Variable(torch.zeros(x_dim), requires_grad=True)
 
     def encoder(self, x):
         ...
-	
     def decoder(self, z):
         ...
-    
     def forward(self, x):
         ...
 \end{minted}
 \end{frame}
 
-\begin{frame}[fragile]{Pytorch simple autoencoder}
+\begin{frame}[fragile]{Encoder $f_\phi(x)$}
+\begin{align}
+	\mathbf{z} =& \relu\left(\mathbf{W}_{xz}\mathbf{x}+\mathbf{b}_{xz}\right)\\
+	\bm{\phi}=&\{\mathbf{W}_{xz}, \mathbf{b}_{xz}\} 
+\end{align}
 \begin{minted}[bgcolor=LightGray, fontsize=\footnotesize]{python}
 class Autoencoder:
     def __init__(self, x_dim, z_dim):
         ...
-	
     def encoder(self, x):
-        z = F.relu(x @ self.Wxh + self.bxh.repeat(x.size(0), 1))
+        z = F.relu(self.Wxz @ z + self.bxz.repeat(x.size(0), 1))
         return z
         
     def decoder(self, z):
         ...
-	
     def forward(self, x):
-	    ...
+        ...
 \end{minted}
 \end{frame}
 
-\begin{frame}[fragile]{Pytorch simple autoencoder}
+\begin{frame}[fragile]{Decoder $g_\theta(x)$}
+\begin{align}
+	\mathbf{z} 
+	=& \sigma\left(\mathbf{W}_{zx}\mathbf{z}+\mathbf{b}_{zx}\right)\\
+\bm{\theta}=&\{\mathbf{W}_{zx}, \mathbf{b}_{zx}\} 
+\end{align}
 \begin{minted}[bgcolor=LightGray, fontsize=\footnotesize]{python}
 class Autoencoder:
     def __init__(self, x_dim, z_dim):
         ...
-	
     def encoder(self, x):
         ...
-	
     def decoder(self, z):
         x_recon = F.sigmoid(z @ self.Wzx + self.bzx.repeat(z.size(0), 1))
         return x_recon
@@ -156,18 +162,15 @@ class Autoencoder:
 \end{minted}
 \end{frame}
 
-\begin{frame}[fragile]{Pytorch simple autoencoder}
+\begin{frame}[fragile]{Forward propagation}
 \begin{minted}[bgcolor=LightGray, fontsize=\footnotesize]{python}
 class Autoencoder:
     def __init__(self, x_dim, z_dim):
         ...
-	
     def encoder(self, x):
         ...
-	
     def decoder(self, z):
         ...
-	
     def forward(self, x):
         z = self.encoder(x)
         x_recon = self.decoder(z)
@@ -220,12 +223,16 @@ Recall that the density of a Bernoulli distribution is given by
 where $p\equiv p(x=1)$.
 \end{frame}
 
-\begin{frame}{Negative Loglikelihood Loss}
+\begin{frame}[fragile]{Negative Loglikelihood Loss}
 If your have binary features, i.e. $x_i\in \{0,1\}$ for $i=1,...,d$, then the output of the decoder can be interpreted has the parameter of a Bernoulli. Thus the likelihood of the input $x$ can be compute has 
 \begin{equation}
 p(x|z)=\prod_{i=1}^dp(x_i|z) = \prod_{i=1}^d\tilde{x}_i^{x_i}(1-\tilde{x}_i)^{1-x_i}
 \end{equation}
 Note that this works only if $\tilde{x}_i\in (0, 1)$. To ensure it, apply sigmoid element wise on the output of the decoder.
+\begin{minted}[bgcolor=LightGray, fontsize=\footnotesize]{python}
+# in pytorch
+loss = functional.binary_cross_entropy(param, x)
+\end{minted}
 \end{frame}
 
 \begin{frame}{Negative Loglikelihood Loss}
@@ -235,13 +242,14 @@ If your don't have binary features, e.g. $x_i\in \real$ for $i=1,...,d$, you nee
 \section{Variational autoencoder}
 
 \begin{frame}{Generative Models}
-Represent the probability distribution of either $P(X,Y)$ or $P(X)$. In the case of \textit{density estimation}, we are looking for a representation of 
+Represent the probability distribution of either $P(X,Y)$ or $P(X)$. In the case of \textit{density estimation}, we are looking for a representation of
+
 \huge
 \[
 	x \sim P_\theta(X)
 \]
 \normalsize
-For example, $x\sim N(x;\bm{\mu}_{MLE}, \bm{\sigma}_{MLE})$ \\
+For example, $x\sim \mathcal{N}(x;\bm{\mu}_{\text{mle}}, \bm{\sigma}_{\text{mle}})$ \\
 
 Problem: Most parametric distribution make strong (and often wrong) assumption about the distribution.
 \end{frame}
@@ -259,21 +267,22 @@ Then we can train a model to learn a good representation of $p_\theta (x|z)$ wit
 \end{frame}
 
 \begin{frame}{Latent variable models}
-Once we have a good representation of $p_\theta (x|z)$, we can sample from $p(x)$ by first sampling \\
-
-$~~~~z'\sim p(z)$\\
-
+Once we have a good representation of $p_\theta (x|z)$, we can sample from $p(x)$ by first sampling
+\[
+	z'\sim p(z)
+\]
 and then sampling\\
-
-$~~~~x'\sim p(x|z')$ 
+\[
+	x'\sim p(x|z')
+\]
 \end{frame}
 
 \begin{frame}{Latent variable models}
-Problem 1: To learn $p_\theta(x|z)$ using stochastic gradient, we need to know good mapping 
+Problem 1: To learn $p_\theta(x|z)$ using stochastic gradient, we need to know a good mapping 
 \[
 	f: \mathcal{Z}\times \Theta \mapsto \mathcal{X}
 \]
-In other word when we sample $x\sim p(z)$ we need to know which $x$ is likely to be generated by this particular $z$ in order to train the model.
+In other word when we sample $x\sim p(x|z')$ we need to know which $x$ is likely to be generated by this particular $z'$ in order to train the model.
 \end{frame}
 
 \begin{frame}{Latent variable models}
@@ -313,7 +322,7 @@ The parameter to learn are $\phi$ and $\theta$ and they should be learn such tha
 \begin{itemize}
 	\item Example: Gaussian MLP as encoder
 	\begin{itemize}
-		\item $h = \relu\left(x W_{xh}+b_{xh}\right)$
+		\item $\bm{h} = \relu\left(x W_{xh}+b_{xh}\right)$
 		\item $\mu = h W^{(1)}_{hz}+b^{(1)}_{hz}$
 		\item $\log \sigma^2 = h W^{(2)}_{hz}+b^{(2)}_{hz}$
 	\end{itemize}
@@ -336,22 +345,18 @@ class VAE:
 \begin{itemize}
 	\item Example: Gaussian MLP as encoder
 	\begin{itemize}
-		\item $\mu_z, \bm{\sigma}_z=$
-		\item $\mu = h W^{(1)}_{hz}+b^{(1)}_{hz}$
-		\item $\log \sigma^2 = h W^{(2)}_{hz}+b^{(2)}_{hz}$
+		\item $\bm{\mu}_z, \bm{\sigma}_z=\encoder(x)$
+		\item $\epsilon \sim \mathcal{N}(\bm{0}, \bm{I})$
+		\item $z = \bm{\mu}_z + \bm{\sigma}_z \odot \bm{\epsilon} $
 	\end{itemize}
-	\item $q_\phi(z|x)=N(z;\mu, \sigma^2)$
-	\item $\phi = \{W^{(1)}_{hz}, b^{(1)}_{hz}, W^{(2)}_{hz}, b^{(2)}_{hz}, W_{xh}, b_{xh}\}$
 \end{itemize}
 \begin{minted}[bgcolor=LightGray, fontsize=\footnotesize]{python}
 class VAE:
 ...
-def encoder(self, x):
-# Encoder network. Return the parameter of q(z|x)
-h = relu(x @ self.Wxh + self.bxh.repeat(x.size(0), 1))  
-mu = h @ self.Whz_mu + self.bhz_mu.repeat(x.size(0), 1)      
-log_var = h @ self.Whz_var + self.bhz_var.repeat(x.size(0), 1)
-reture mu, log_var
+def _sample_z(self, mu, log_var):
+    epsilon = Variable(torch.randn(mu.size()).to(self._device)
+    sigma = torch.exp(log_var / 2)
+    return mu + sigma * epsilon
 \end{minted}
 \end{frame}
 
@@ -386,25 +391,92 @@ In other word the lost function should be
 \]
 \end{frame}
 
+\begin{frame}{Kullback-Leibler divergence}
+\begin{equation}
+\kldiv[q(x)||p(x)] 
+= \E_{x\sim q(x)}[ \log q(x) - \log p(x)]
+\end{equation}
+
+\bigskip
+
+Gibbs' inequality:
+\begin{equation}
+\kldiv[q(x)||p(x)] \geq 0
+\end{equation}
+\end{frame}
+
 \begin{frame}{Training VAE}
 Now let's compute de Kullback-Leibler divergence $\kldiv$ between $p(z|x)$ and $q(z|x)$
-\scriptsize
+%\scriptsize
 \begin{equation*}
 \begin{split}
-	\kldiv[q(z|x)||p(z|x)] 
+	\kldiv[q(z|&x)||p(z|x)]\\ 
 	=& \E_{z\sim q(z|x)}[ \log q(z|x) - \log p(z|x)]\\
 	=& \E_{z\sim q(z|x)}[ \log q(z|x) - \log p(x|z) - \log p(z) + \log p(x)]\\
 	=& \log p(x) + \E_{z\sim q(z|x)}[ \log q(z|x)  - \log p(z)] - \E_{z\sim q(z|x)}\log p(x|z)\\
 	=& \log p(x) - \kldiv[q(z|x)||p(z|x)] - \E_{z\sim q(z|x)}\log p(x|z)\\
 \end{split}
 \end{equation*}
-\footnotesize
+\end{frame}
+
+\begin{frame}{Training VAE}
+\small
 \begin{equation}
 \begin{split}
-	\log p(x) - \kldiv[q(z|x)||\log p(z|x)] =& \E_{z\sim q(z|x)}\log p(x|z)- \kldiv[q(z|x)||p(z)]\\
-	\log p(x)  \geq& \E_{z\sim q(z|x)}\log p(x|z)- \kldiv[q(z|x)||p(z)]
+	\log p(x) = \E_{z\sim q(z|x)}\log p(x|z)- \kldiv[q(z|x)||p(z)] + \kldiv[q(z|x)||\log p(z|x)]\\
 \end{split}
 \end{equation}
+\normalsize
+Because of Gibbs' inequality we have
+\[
+	\log p(x)  \geq \E_{z\sim q(z|x)}\log p(x|z)- \kldiv[q(z|x)||p(z)]
+\]
+Hence, our loss function is
+\[
+	\mathcal{L} = \E_{z\sim q(z|x)}\log p(x|z)- \kldiv[q(z|x)||p(z)]
+\]
+\end{frame}
+
+\begin{frame}{Solution of $\kldiv[q(z|x)||p(z)]$}
+\[
+	\kldiv[q(x)||p(x)] = \int q(x)(\log q(x)-\log p(x))dx
+\]
+\end{frame}
+
+\begin{frame}{Training VAE}
+Suppose $z\in \real^J$ is normal 
+\begin{equation}
+\begin{split}
+\int q(z|x)\log q(z|x)dz =& \int \mathcal{N}(z;\mu, \sigma)\log \mathcal{N}(z;\mu, \sigma)\\
+=& -\frac{J}{2} \log 2\pi - \frac{1}{2}\sum_{j=1}^J (1+\log \sigma_j^2)
+\end{split}
+\label{eq:klgauss1}
+\end{equation}
+\begin{equation}
+\begin{split}
+\int q(z|x)\log p(z)dz =& \int \mathcal{N}(z;\mu, \sigma)\log \mathcal{N}(z;0, I)\\
+=& -\frac{J}{2} \log 2\pi - \frac{1}{2}\sum_{j=1}^J (\mu_j^2+\sigma_j^2)
+\end{split}
+\label{eq:klgauss2}
+\end{equation}
+\end{frame}
+
+\begin{frame}[fragile]{Training VAE}
+\begin{equation}
+\begin{split}
+\kldiv[q(x)||p(x)] =& (\ref{eq:klgauss1})-(\ref{eq:klgauss2})\\
+=& \frac{1}{2}\sum \mu_j^2 + \sigma_j^2 - 1 - \log \sigma_j^2
+\end{split}
+\end{equation}
+\begin{minted}[bgcolor=LightGray, fontsize=\footnotesize]{python}
+def kl_divergence(mu, log_sigma):
+    sigma = torch.exp(log_sigma)
+    return .5 * torch.sum(mu**2 + sigma**2 - 1 - 2*log_sigma, axis=1)
+\end{minted}
+\end{frame}
+
+\begin{frame}{Experiment}
+
 \end{frame}
 
 \section{Anomaly detection and autoencoder}
@@ -431,14 +503,6 @@ Some anomaly detection methods:
 	\caption{Pseudocode for Batch Gradient Descent}
 	\label{alg:seq}
 \end{algorithm}
-\end{frame}
-
-\begin{frame}[fragile]{Anomaly detection}
-\begin{minted}[bgcolor=LightGray, fontsize=\footnotesize]{python}
-import numpy
-def forward():
-    # fjdksjfksjfkls
-\end{minted}
 \end{frame}
 
 
