@@ -6,6 +6,8 @@ import torch
 from torch.autograd import Variable
 from torch import nn
 
+from sklearn.metrics import f1_score
+
 
 class Encoder(nn.Module):
     """Probabilistic Encoder
@@ -34,7 +36,7 @@ class Encoder(nn.Module):
     def _initialize_parameters(self):
         """Parameter initialization
 
-            W ~ U[-1 / nc, 1/ nc]
+            W ~ U[-1 / nc, 1 / nc]
         
         where nc is the number of neuros on the 
         previous layer. The bias are initialize at
@@ -42,7 +44,7 @@ class Encoder(nn.Module):
         """
         for layer in self.modules():
             if isinstance(layer, nn.Linear):
-                bound = 1/np.sqrt(layer.in_features)
+                bound = 1 / np.sqrt(layer.in_features)
                 layer.weight.data.uniform_(-bound, bound)
                 layer.bias.data.zero_()
 
@@ -98,11 +100,15 @@ class VAE(nn.Module):
             lr=1.e-3, 
             betas=(0.5, 0.999)
         )
+        optimizer = torch.optim.SGD(self.parameters(), lr=0.05, momentum=0.1)
         self._bce_loss = torch.nn.BCELoss(reduction='sum')
         self._num_epochs = 100
         
         self.mu = None 
         self.log_var = None
+
+        self.precentile_threshold = 10
+        self.threshold = None
 
     def parameters(self):
         return chain(self._encoder.parameters(), self._decoder.parameters())
@@ -119,21 +125,29 @@ class VAE(nn.Module):
         x = self._decoder(z)
         return x
 
-    def train(self, dataloader):
+    def to_numpy(self, tensor):
+        return tensor.data.cpu().numpy()
+
+    def train(self, trainloader, trainloader2=None,  devloader=None, print_every=10):
 
         to_np = lambda x: x.data.cpu().numpy()
 
+        loss_storage = {'train': [], 'valid': []}
+        acc_storage = {'train': [], 'valid': []}
+
+        starting_time = time.time()
+
         for epoch in range(self._num_epochs):
-            if epoch >= 1:
-                print("\n[%2.2f]" % (time.time() - t0), end="\n")
+            #if epoch >= 1:
+            #    print("\n[%2.2f]" % (time.time() - t0), end="\n")
             
             t0 = time.time()
 
-            for step, (inputs, _) in enumerate(dataloader, 0):
-                if step >= 1:
-                    print("Epoch [%i] | iter [%i] | time [%2.2f] | loss [%2.2f]" % (
-                        epoch, step, time.time() - t1, to_np(loss)), end="\r"
-                    )
+            for step, (inputs, _) in enumerate(trainloader, 0):
+                #if step >= 1:
+                #    print("Epoch [%i] | iter [%i] | time [%2.2f] | loss [%2.2f]" % (
+                #        epoch, step, time.time() - t1, to_np(loss)), end="\r"
+                #    )
                 t1 = time.time()
 
                 batch_size = inputs.size(0)
@@ -149,6 +163,72 @@ class VAE(nn.Module):
 
                 self._optim.step()
                 self._optim.zero_grad() 
+            
+            if epoch % (self._num_epochs // print_every) == 0 and epoch > 0:
+                self.find_threshold(trainloader2)
+                current_time = time.time()
+                loss = self.evaluate_loss(trainloader)
+                train_acc = self.eval_f1_score(trainloader2)
+                dev_acc = self.eval_f1_score(devloader)
+                print('epoch: {} | loss: {} | train F1: {} | valid F1: {}% | time: {}'.format(
+                    epoch, loss, train_acc, dev_acc, self._get_time(starting_time, current_time)
+                ))
+    
+    def _get_time(self, starting_time, current_time):
+        total_time = current_time - starting_time
+        minutes = round(total_time // 60)
+        seconds = round(total_time % 60)
+        return '{} min., {} sec.'.format(minutes, seconds)
+
+    def evaluate_loss(self, dataloader):
+        loss = 0
+        for inputs, _ in dataloader:
+            x = inputs.to(self._device)
+            gamma = self.forward(x)
+            loss += self._bce_loss(gamma, x)
+
+        return round(self.to_numpy(loss) / dataloader.data_size_(), 4)
+
+    def evaluate_probability(self, x):
+        x = x.to(self._device)
+        gamma = self.forward(x)
+        log_likelihood = - self._bce_loss(gamma, x)
+        return self.to_numpy(log_likelihood)
+
+    def find_threshold(self, dataloader):
+        log_densities = []
+        for input_, _ in dataloader:
+            log_density = self.evaluate_probability(input_)
+            log_densities.append(log_density)
+        log_densities = np.array(log_densities)
+        self.threshold = np.percentile(log_densities, self.precentile_threshold)
+
+    def predict(self, x):
+        log_density = self.evaluate_probability(x)
+        if log_density < self.threshold:
+            return 1
+        else:
+            return 0
+
+    def eval_f1_score(self, dataloader):
+        predictions = []
+        targets = [] 
+        for input_, target in dataloader:
+            pred = self.predict(input_)
+            predictions.append(pred)
+            targets.append(self.to_numpy(target))
+        return round(f1_score(targets, predictions), 4)
+
+    def evaluate_accuracy(self, dataloader):
+        total, correct = 0, 0
+        for input_, target in dataloader:
+            pred = self.predict(input_)
+            if pred == target.data:
+                correct += 1
+            total += 1
+        return round((correct / total) * 100, 4)
+            
+
 
 if __name__ == '__main__':
     
