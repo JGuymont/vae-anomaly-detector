@@ -7,11 +7,4 @@
         \PYG{c+c1}{\PYGZsh{} decoder parameters \PYGZbs{}theta}
         \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{Wzx} \PYG{o}{=} \PYG{n}{xavier\PYGZus{}init}\PYG{p}{(}\PYG{n}{size}\PYG{o}{=}\PYG{p}{[}\PYG{n}{z\PYGZus{}dim}\PYG{p}{,} \PYG{n}{x\PYGZus{}dim}\PYG{p}{])}
         \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{bzx} \PYG{o}{=} \PYG{n}{Variable}\PYG{p}{(}\PYG{n}{torch}\PYG{o}{.}\PYG{n}{zeros}\PYG{p}{(}\PYG{n}{x\PYGZus{}dim}\PYG{p}{),} \PYG{n}{requires\PYGZus{}grad}\PYG{o}{=}\PYG{n+nb+bp}{True}\PYG{p}{)}
-
-    \PYG{k}{def} \PYG{n+nf}{encoder}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{,} \PYG{n}{x}\PYG{p}{):}
-        \PYG{o}{...}
-    \PYG{k}{def} \PYG{n+nf}{decoder}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{,} \PYG{n}{z}\PYG{p}{):}
-        \PYG{o}{...}
-    \PYG{k}{def} \PYG{n+nf}{forward}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{,} \PYG{n}{x}\PYG{p}{):}
-        \PYG{o}{...}
 \end{Verbatim}

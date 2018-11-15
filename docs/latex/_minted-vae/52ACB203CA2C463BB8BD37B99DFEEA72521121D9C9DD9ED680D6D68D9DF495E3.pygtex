@@ -1,0 +1,8 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k+kn}{from} \PYG{n+nn}{PIL} \PYG{k+kn}{import} \PYG{n}{Image}
+\PYG{k}{def} \PYG{n+nf}{image\PYGZus{}to\PYGZus{}array}\PYG{p}{(}\PYG{n}{image\PYGZus{}path}\PYG{p}{):}
+    \PYG{k}{with} \PYG{n}{Image}\PYG{o}{.}\PYG{n}{open}\PYG{p}{(}\PYG{n}{image\PYGZus{}path}\PYG{p}{)} \PYG{k}{as} \PYG{n}{img}\PYG{p}{:}
+        \PYG{n}{image} \PYG{o}{=} \PYG{n}{img}\PYG{o}{.}\PYG{n}{convert}\PYG{p}{()}
+        \PYG{n}{array\PYGZus{}image} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{asarray}\PYG{p}{(}\PYG{n}{image}\PYG{p}{,} \PYG{n}{np}\PYG{o}{.}\PYG{n}{float}\PYG{p}{)}
+    \PYG{k}{return} \PYG{n}{array\PYGZus{}image}
+\end{Verbatim}

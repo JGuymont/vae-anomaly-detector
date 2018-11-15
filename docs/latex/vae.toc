@@ -1,4 +1,14 @@
 \babel@toc {english}{}
 \beamer@sectionintoc {1}{Autoencoders}{3}{0}{1}
-\beamer@sectionintoc {2}{Variational autoencoder}{16}{0}{2}
-\beamer@sectionintoc {3}{Anomaly detection and autoencoder}{34}{0}{3}
+\beamer@subsectionintoc {1}{1}{An example to keep in mind}{3}{0}{1}
+\beamer@subsectionintoc {1}{2}{Autoencoders}{5}{0}{1}
+\beamer@sectionintoc {2}{Variational autoencoder}{19}{0}{2}
+\beamer@subsectionintoc {2}{1}{Generative Model}{19}{0}{2}
+\beamer@subsectionintoc {2}{2}{Latent variable models}{21}{0}{2}
+\beamer@subsectionintoc {2}{3}{Variational Lower Bound}{32}{0}{2}
+\beamer@sectionintoc {3}{Experiment}{41}{0}{3}
+\beamer@subsectionintoc {3}{1}{Unsupervised Spam Detection}{41}{0}{3}
+\beamer@subsectionintoc {3}{2}{Preprocessing}{45}{0}{3}
+\beamer@subsectionintoc {3}{3}{Binary Cross Entropy}{49}{0}{3}
+\beamer@subsectionintoc {3}{4}{Bernoulli MLP as Decoder}{54}{0}{3}
+\beamer@subsectionintoc {3}{5}{Spam Detector}{56}{0}{3}

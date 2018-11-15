@@ -1,12 +1,19 @@
-\frametitle{Training VAE}
-\begin{equation}
-\begin{split}
-\kldiv[q(x)||p(x)] =& (\ref{eq:klgauss1})-(\ref{eq:klgauss2})\\
-=& \frac{1}{2}\sum \mu_j^2 + \sigma_j^2 - 1 - \log \sigma_j^2
-\end{split}
-\end{equation}
+\frametitle{Probabilistic Decoder $p_\theta (x|z)$}
+Bernoulli MLP as decoder
+\begin{itemize}
+	\item $\bm{\gamma}=g(z;\bm{\theta})$
+	\begin{itemize}
+		\item $h = \relu\left(W_{zh}x+b_{zh}\right)$
+		\item $\gamma = \sigma\left(W_{hx}h+b_{hx}\right)$
+	\end{itemize}
+	\item $p_\theta(x|z)=\bernoulli(x;\bm{\gamma})$
+	\item $\bm{\theta} = \{W_{zh}, b_{zh}, W_{zx}, b_{zx}\}$
+\end{itemize}
 \begin{minted}[bgcolor=LightGray, fontsize=\footnotesize]{python}
-def kl_divergence(mu, log_sigma):
-    sigma = torch.exp(log_sigma)
-    return .5 * torch.sum(mu**2 + sigma**2 - 1 - 2*log_sigma, axis=1)
+class VAE:
+    ...
+    def decoder(self, z):
+        h = relu(self.W_zh @ z + self.b_zh.repeat(x.size(0), 1))
+        gamma = self.W_hx @ h + self.b_hx.repeat(x.size(0), 1)
+        reture gamma
 \end{minted}

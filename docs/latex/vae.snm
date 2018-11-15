@@ -1,3 +1,4 @@
-\beamer@slide {eq:klgauss1}{31}
-\beamer@slide {eq:klgauss2}{31}
-\beamer@slide {alg:seq}{35}
+\beamer@slide {alg:sgd}{16}
+\beamer@slide {eq:klgauss1}{38}
+\beamer@slide {eq:klgauss2}{38}
+\beamer@slide {alg:se}{57}

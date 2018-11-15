@@ -1,0 +1,30 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k}{def} \PYG{n+nf}{train}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{,} \PYG{n}{trainloader}\PYG{p}{,} \PYG{n}{num\PYGZus{}epochs}\PYG{p}{,} \PYG{n}{learning\PYGZus{}rate}\PYG{p}{):}
+
+    \PYG{k}{for} \PYG{n}{epoch} \PYG{o+ow}{in} \PYG{n+nb}{range}\PYG{p}{(}\PYG{n}{num\PYGZus{}epochs}\PYG{p}{):}
+        \PYG{k}{for} \PYG{n}{inputs}\PYG{p}{,} \PYG{n}{targets} \PYG{o+ow}{in} \PYG{n}{trainloader}\PYG{p}{:}
+            \PYG{n}{batch\PYGZus{}size} \PYG{o}{=} \PYG{n}{inputs}\PYG{o}{.}\PYG{n}{size}\PYG{p}{(}\PYG{l+m+mi}{0}\PYG{p}{)}
+            \PYG{n}{x\PYGZus{}tilde} \PYG{o}{=} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{forward}\PYG{p}{(}\PYG{n}{x}\PYG{p}{)}
+
+            \PYG{n}{loss} \PYG{o}{=} \PYG{n}{F}\PYG{o}{.}\PYG{n}{mse\PYGZus{}loss}\PYG{p}{(}\PYG{n}{x}\PYG{p}{,} \PYG{n}{x\PYGZus{}tilde}\PYG{p}{)}
+
+            \PYG{c+c1}{\PYGZsh{} Use autograd to compute the derivative of the loss w.r.t}
+            \PYG{c+c1}{\PYGZsh{} all Tensors with requires\PYGZus{}grad=True. After calling `loss.backward()`,}
+            \PYG{c+c1}{\PYGZsh{} conv\PYGZus{}weight.grad, dense\PYGZus{}weight.grad, and dense\PYGZus{}bias.grad}
+            \PYG{c+c1}{\PYGZsh{} will be Tensors equal to the gradient of the loss with respect}
+            \PYG{c+c1}{\PYGZsh{} to the filters of the cnn layer, the weight of the fully connected layer, and}
+            \PYG{c+c1}{\PYGZsh{} the bias of the fully connected layer respectively.}
+            \PYG{n}{loss}\PYG{o}{.}\PYG{n}{backward}\PYG{p}{()}
+
+            \PYG{c+c1}{\PYGZsh{} Apply gradient descent to all the leaned parameters}
+            \PYG{c+c1}{\PYGZsh{} The derivative of the loss is giving us the direction}
+            \PYG{c+c1}{\PYGZsh{} where the funtion increase. Thus we go in the}
+            \PYG{c+c1}{\PYGZsh{} opposite direction. Using torch.no\PYGZus{}grad() tells pytorch}
+            \PYG{c+c1}{\PYGZsh{} to not include thes operation in the computational graph.}
+            \PYG{c+c1}{\PYGZsh{} Instead, gradient descent is goning to be applied `inplace`.}
+            \PYG{k}{with} \PYG{n}{torch}\PYG{o}{.}\PYG{n}{no\PYGZus{}grad}\PYG{p}{():}
+                \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{W\PYGZus{}xz} \PYG{o}{\PYGZhy{}=} \PYG{n}{learning\PYGZus{}rate} \PYG{o}{*} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{W\PYGZus{}xz}\PYG{o}{.}\PYG{n}{grad}
+                \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{b\PYGZus{}xz} \PYG{o}{\PYGZhy{}=} \PYG{n}{learning\PYGZus{}rate} \PYG{o}{*} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{b\PYGZus{}xz}\PYG{o}{.}\PYG{n}{grad}
+                \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{W\PYGZus{}zx} \PYG{o}{\PYGZhy{}=} \PYG{n}{learning\PYGZus{}rate} \PYG{o}{*} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{W\PYGZus{}zx}\PYG{o}{.}\PYG{n}{grad}
+                \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{b\PYGZus{}zx} \PYG{o}{\PYGZhy{}=} \PYG{n}{learning\PYGZus{}rate} \PYG{o}{*} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{b\PYGZus{}zx}\PYG{o}{.}\PYG{n}{grad}
+\end{Verbatim}

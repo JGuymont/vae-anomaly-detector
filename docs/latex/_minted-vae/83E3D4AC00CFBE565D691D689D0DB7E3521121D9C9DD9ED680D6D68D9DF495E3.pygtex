@@ -1,0 +1,11 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{n}{x} \PYG{o}{=} \PYG{l+s+s1}{\PYGZsq{}What you doing?how are you?\PYGZsq{}}
+
+\PYG{n}{x} \PYG{o}{=} \PYG{n}{preprocess}\PYG{p}{(}\PYG{n}{x}\PYG{p}{)}
+\PYG{k}{print}\PYG{p}{(}\PYG{n}{x}\PYG{p}{)}
+\PYG{o}{\PYGZgt{}\PYGZgt{}\PYGZgt{}} \PYG{l+s+s1}{\PYGZsq{}what you do how be you\PYGZsq{}}
+
+\PYG{n}{x} \PYG{o}{=} \PYG{n}{vectorize}\PYG{p}{(}\PYG{n}{x}\PYG{p}{)}
+\PYG{k}{print}\PYG{p}{(}\PYG{n}{x}\PYG{p}{)}
+\PYG{o}{\PYGZgt{}\PYGZgt{}\PYGZgt{}} \PYG{p}{[}\PYG{l+m+mi}{0} \PYG{l+m+mi}{0} \PYG{l+m+mi}{0} \PYG{o}{...} \PYG{l+m+mi}{0} \PYG{l+m+mi}{0} \PYG{l+m+mi}{0}\PYG{p}{]}
+\end{Verbatim}
