@@ -35,6 +35,9 @@
 \newcommand{\encoder}{\mathrm{encoder}}
 \newcommand{\code}[1]{{\small\colorbox{LightGray}{\texttt{#1}}}}
 
+%\setbeamercolor{block title}{use=structure,fg=white,bg=red!75!black}
+%\setbeamercolor{block body}{use=structure,fg=black,bg=red!20!white}
+
 % title page
 \title{Machine Learning Workshop 2}
 \subtitle{Variational Autoencoder}
@@ -88,9 +91,9 @@ Autoencoers are neural network that are trained to learn how to map their input 
 \begin{frame}{Autoencoders}
 An autoencoder can be seen has a two parts network
 \begin{itemize}
-	\item Encoder function: $\bm{z}=f_\phi(\bm{x})$
-	\item Decoder function: $\tilde{\bm{x}} = g_\theta(\bm{z})$
-	\item $\phi$ and $\theta$ are set of learned parameters
+	\item Encoder function: $\bm{z}=f_\phi(\bm{x})$ \pause
+	\item Decoder function: $\tilde{\bm{x}} = g_\theta(\bm{z})$ \pause
+	\item $\phi$ and $\theta$ are set of learned parameters \pause
 \end{itemize}
 \end{frame}
 
@@ -456,92 +459,78 @@ class VAE:
 	We need $p_\theta(x|z)$ to be such that the marginal likelihood $p(x)$ is maximized. \\
 	
 	In other word the lost function should be
+	\huge
 	\[
-		-\log p(x^{(1)},...,x^{(N)}) = -\sum_{i=1}^N \log p(x^{(i)})
+		\mathcal{L}(x;\phi, \theta) = -\log p(x)	
 	\]
 \end{frame}
 
 \begin{frame}{Kullback-Leibler divergence}
-	\begin{equation}
-		\kldiv[q(x)||p(x)] 
-		= \E_{x\sim q(x)}[ \log q(x) - \log p(x)]
-	\end{equation}
 
-	\bigskip
-
-	Gibbs' inequality:
-	\begin{equation}
-		\kldiv[q(x)||p(x)] \geq 0
-	\end{equation}
+	\begin{block}{Kullback-Leibler divergence}
+		Let $p(x)$ and $q(x)$ be probability measures over a set $X$, and $q(x)$ is absolutely continuous with respect to $p(x)$, then the Kullback?Leibler divergence from $p$ to $q$ is defined as
+		\begin{equation*}
+			\begin{split}
+			\kldiv[q(x)||p(x)] 
+			=& \E_{x\sim q(x)}[ \log q(x) - \log p(x)]\\
+			=& \int q(x)(\log q(x)-\log p(x))dx\\
+			=& \int q(x)\log q(x)dx-\int q(x)\log p(x)dx
+			\end{split}
+		\end{equation*}
+	\end{block}
+	\begin{block}{Gibbs' inequality}
+		\begin{equation*}
+			\kldiv[q(x)||p(x)] \geq 0
+		\end{equation*} 
+	\end{block}
 \end{frame}
 
-\begin{frame}{Training VAE}
-	Now let's compute de Kullback-Leibler divergence $\kldiv$ between $p(z|x)$ and $q(z|x)$
-	%\scriptsize
-	\begin{equation*}
-	\begin{split}
-		\kldiv[q(z|&x)||p(z|x)]\\ 
+\begin{frame}{Variational Lower Bound}
+	\begin{corollary}
+		The marginal log-likelihood $\log p(x)$ is lower bounded by the \textit{variational lower bound} i.e
+		\[
+			\log p(x)  \geq \E_{z\sim q(z|x)}\log p(x|z)- \kldiv[q(z|x)||p(z)]
+		\]
+	\end{corollary}
+	Hence, our loss function is
+	\Large
+	\[
+		\mathcal{L}(x;\phi, \theta) = \E_{z\sim q(z|x)}\log p(x|z)- \kldiv[q(z|x)||p(z)]
+	\] 
+\end{frame} 
+
+\begin{frame}{Proof of the Variational Lower Bound}
+	\begin{proof}
+		\scriptsize
+		First, let's compute de Kullback-Leibler divergence $\kldiv$ between $p(z|x)$ and $q(z|x)$
+		\begin{equation*}
+		\begin{split}
+		\kldiv[q(z|x)||p(z|x)] 
 		=& \E_{z\sim q(z|x)}[ \log q(z|x) - \log p(z|x)]\\
 		=& \E_{z\sim q(z|x)}[ \log q(z|x) - \log p(x|z) - \log p(z) + \log p(x)]\\
 		=& \log p(x) + \E_{z\sim q(z|x)}[ \log q(z|x)  - \log p(z)] - \E_{z\sim q(z|x)}\log p(x|z)\\
 		=& \log p(x) - \kldiv[q(z|x)||p(z|x)] - \E_{z\sim q(z|x)}\log p(x|z)\\
-	\end{split}
-	\end{equation*}
-\end{frame}
-
-\begin{frame}{Training VAE}
-	\small
-	\begin{equation}
-	\begin{split}
-		\log p(x) = \E_{z\sim q(z|x)}\log p(x|z)- \kldiv[q(z|x)||p(z)] + \kldiv[q(z|x)||\log p(z|x)]\\
-	\end{split}
-	\end{equation}
-	\normalsize
-	Because of Gibbs' inequality we have
-	\[
-		\log p(x)  \geq \E_{z\sim q(z|x)}\log p(x|z)- \kldiv[q(z|x)||p(z)]
-	\]
-	Hence, our loss function is
-	\[
-		\mathcal{L} = \E_{z\sim q(z|x)}\log p(x|z)- \kldiv[q(z|x)||p(z)]
-	\]
-\end{frame}
-
-\begin{frame}{Solution of $\kldiv[q(z|x)||p(z)]$}
-	\begin{equation*}
-	\begin{split}
-		\kldiv[q_\phi(z|x)||p(z)] 
-		=& \int q_\phi(z|x)(\log q_\phi(z|x)-\log p(z))dx\\
-		=& \int q_\phi(z|x)\log q_\phi(z|x)dx-\int q_\phi(z|x)\log p(z))dx
-	\end{split}
-	\end{equation*}
-\end{frame}
-
-\begin{frame}{Training VAE}
-	Suppose $z\in \real^J$ is normal 
-	\begin{equation}
-	\begin{split}
-		\int q(z|x)\log q(z|x)dz =& \int \mathcal{N}(z;\mu, \sigma)\log \mathcal{N}(z;\mu, \sigma)\\
-		=& -\frac{J}{2} \log 2\pi - \frac{1}{2}\sum_{j=1}^J (1+\log \sigma_j^2)
 		\end{split}
-		\label{eq:klgauss1}
-	\end{equation}
-	\begin{equation}
-	\begin{split}
-		\int q(z|x)\log p(z)dz =& \int \mathcal{N}(z;\mu, \sigma)\log \mathcal{N}(z;0, I)\\
-		=& -\frac{J}{2} \log 2\pi - \frac{1}{2}\sum_{j=1}^J (\mu_j^2+\sigma_j^2)
-		\end{split}
-		\label{eq:klgauss2}
-	\end{equation}
+		\end{equation*}
+		Sending all the terms on the right except $\log p(x)$ gives
+		\[
+			\log p(x) = \E_{z\sim q(z|x)}\log p(x|z)- \kldiv[q(z|x)||p(z)] + \kldiv[q(z|x)||\log p(z|x)]
+		\]
+		Finally, because of Gibbs' inequality we have
+		\[
+			\boxed{\log p(x)  \geq \E_{z\sim q(z|x)}\log p(x|z)- \kldiv[q(z|x)||p(z)]}
+		\]
+	\end{proof}
 \end{frame}
 
-\begin{frame}[fragile]{Training VAE}
-	\begin{equation}
-	\begin{split}
-		\kldiv[q(z|x)||p(z)] =& (\ref{eq:klgauss1})-(\ref{eq:klgauss2})\\
-		=& \frac{1}{2}\sum_{j=1}^J \mu_j^2 + \sigma_j^2 - 1 - \log \sigma_j^2
-	\end{split}
-	\end{equation}
+\begin{frame}[fragile]{Solution of $\kldiv[q(z|x)||p(z)]$}
+	\begin{block}{Lemma}
+		Let $z\in \real^J$ be a standard multivariate Gaussian distribution and let $z|x$ be a multivariate Gaussian distribution with mean $\bm{\mu}_z$ and standard deviation $\bm{\sigma}_z$. Then the KL-divergence from $p(z)$ to $q_\phi(z|x)$ is 
+		\begin{equation*}
+		\kldiv[q(z|x)||p(z)] 
+		= \frac{1}{2}\sum_{j=1}^J \mu_j^2 + \sigma_j^2 - 1 - \log \sigma_j^2
+		\end{equation*}
+	\end{block}
 \begin{minted}[bgcolor=LightGray, fontsize=\footnotesize]{python}
 def kl_divergence(mu, log_sigma):
     sigma = torch.exp(log_sigma)
@@ -549,14 +538,82 @@ def kl_divergence(mu, log_sigma):
 \end{minted}
 \end{frame}
 
+\begin{frame}{Proof for the Solution of $\kldiv[q(z|x)||p(z)]$}
+\begin{proof}
+	\tiny
+	According to the definition of the KL-divergence we have
+	
+	\vspace{-5pt}
+	
+	\begin{equation*}
+	\kldiv[q_\phi(z|x)||p(z)] 
+	= \int q_\phi(z|x)\log q_\phi(z|x)dx-\int q_\phi(z|x)\log p(z))dx
+	\end{equation*}
+	
+	\vspace{-5pt}
+	
+	Solving the first integral gives
+	
+	\vspace{-5pt}
+	
+	\begin{equation}
+		\begin{split}
+			\int q(z|x)\log q(z|x)dz 
+			=& \int \mathcal{N}(z;\mu, \sigma)\log \mathcal{N}(z;\mu, \sigma)\\
+			=& -\frac{J}{2} \log 2\pi - \frac{1}{2}\sum_{j=1}^J (1+\log \sigma_j^2)
+		\end{split}
+		\label{eq:klgauss1}
+	\end{equation}
+	
+	\vspace{-5pt}
+	
+	Now solving the second integral
+	
+	\vspace{-5pt}
+	
+	\begin{equation}
+		\begin{split}
+			\int q(z|x)\log p(z)dz 
+			=& \int \mathcal{N}(z;\mu, \sigma)\log \mathcal{N}(z;0, I)\\
+			=& -\frac{J}{2} \log 2\pi - \frac{1}{2}\sum_{j=1}^J (\mu_j^2+\sigma_j^2)
+		\end{split}
+	\label{eq:klgauss2}
+	\end{equation}
+	
+	\vspace{-5pt}
+	
+	where $J$ is the dimension of $z$. Finally, subtracting (\ref{eq:klgauss2}) from (\ref{eq:klgauss1}) gives  
+	
+	\vspace{-5pt}
+	
+	\begin{equation*}
+		\kldiv[q(z|x)||p(z)] 
+		= \frac{1}{2}\sum_{j=1}^J \mu_j^2 + \sigma_j^2 - 1 - \log \sigma_j^2
+	\end{equation*}
+\end{proof}
+\end{frame}
+
 \begin{frame}[fragile]{VAE Loss Function}
-\begin{equation}
-\begin{split}
-		\mathcal{L} 
-		=& -\E_{z\sim q(z|x)}\log p(x|z) + \kldiv[q(z|x)||p(z)]\\
-		=& -\log \mathcal{N}(x;\bm{\mu}_x, \bm{\sigma}_x) + \frac{1}{2}\sum_{j=1}^J \mu_j^2 + \sigma_j^2 - 1 - \log \sigma_j^2
-\end{split}
-\end{equation}
+	The loss function for a standard Gaussian latent variable and a multivariate Gaussian posterior distribution on $x$ is given by 
+	\begin{equation}
+	\begin{split}
+			\mathcal{L}(x;\phi, \theta) 
+			=& -\E_{z\sim q(z|x)}\log p(x|z) + \kldiv[q(z|x)||p(z)]\\
+			=& -\log \mathcal{N}(x;\bm{\mu}_x, \bm{\sigma}_x) + \frac{1}{2}\sum_{j=1}^J \mu_j^2 + \sigma_j^2 - 1 - \log \sigma_j^2
+	\end{split}
+	\end{equation}
+\end{frame}
+
+\begin{frame}{Choice of $p_\theta(x|z)$}
+	In our example, we used $p_\theta(x|z)=\mathcal{N}(x;\bm{\mu}_z, \bm{\sigma}_z)$. In practice you can use any distribution you want. \\
+	
+	Some important aspect to consider
+	\begin{itemize}
+		\item The image of the distribution must correspond to the input space.\pause
+		\item Choose a distribution that make sense base on you knowledge of the problem. \pause
+		\item If the domain is continuous on the real number a normal distribution can make sense \pause
+		\item If the domain is discrete, choose a discrete distribution like a Bernoulli or a Poisson.
+	\end{itemize}
 \end{frame}
 
 \section{Experiment}
