@@ -1,9 +1,0 @@
-\begin{Verbatim}[commandchars=\\\{\}]
-\PYG{k}{class} \PYG{n+nc}{VAE}\PYG{p}{:}
-    \PYG{o}{...}
-    \PYG{k}{def} \PYG{n+nf}{encoder}\PYG{p}{(}\PYG{n+nb+bp}{self}\PYG{p}{,} \PYG{n}{x}\PYG{p}{):}
-        \PYG{n}{h} \PYG{o}{=} \PYG{n}{relu}\PYG{p}{(}\PYG{n}{x} \PYG{err}{@} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{Wxh} \PYG{o}{+} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{bxh}\PYG{o}{.}\PYG{n}{repeat}\PYG{p}{(}\PYG{n}{x}\PYG{o}{.}\PYG{n}{size}\PYG{p}{(}\PYG{l+m+mi}{0}\PYG{p}{),} \PYG{l+m+mi}{1}\PYG{p}{))}
-        \PYG{n}{mu} \PYG{o}{=} \PYG{n}{h} \PYG{err}{@} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{Whz\PYGZus{}mu} \PYG{o}{+} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{bhz\PYGZus{}mu}\PYG{o}{.}\PYG{n}{repeat}\PYG{p}{(}\PYG{n}{x}\PYG{o}{.}\PYG{n}{size}\PYG{p}{(}\PYG{l+m+mi}{0}\PYG{p}{),} \PYG{l+m+mi}{1}\PYG{p}{)}
-        \PYG{n}{log\PYGZus{}var} \PYG{o}{=} \PYG{n}{h} \PYG{err}{@} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{Whz\PYGZus{}var} \PYG{o}{+} \PYG{n+nb+bp}{self}\PYG{o}{.}\PYG{n}{bhz\PYGZus{}var}\PYG{o}{.}\PYG{n}{repeat}\PYG{p}{(}\PYG{n}{x}\PYG{o}{.}\PYG{n}{size}\PYG{p}{(}\PYG{l+m+mi}{0}\PYG{p}{),} \PYG{l+m+mi}{1}\PYG{p}{)}
-        \PYG{n}{reture} \PYG{n}{mu}\PYG{p}{,} \PYG{n}{log\PYGZus{}var}
-\end{Verbatim}
