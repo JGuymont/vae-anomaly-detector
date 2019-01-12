@@ -141,12 +141,8 @@
 \headcommand {\beamer@framepages {62}{62}}
 \headcommand {\slideentry {3}{5}{2}{63/63}{Spam Detector}{0}}
 \headcommand {\beamer@framepages {63}{63}}
-\headcommand {\slideentry {3}{5}{3}{64/64}{Spam Detector}{0}}
-\headcommand {\beamer@framepages {64}{64}}
-\headcommand {\slideentry {3}{5}{4}{65/65}{Spam Detector}{0}}
-\headcommand {\beamer@framepages {65}{65}}
-\headcommand {\beamer@partpages {1}{65}}
-\headcommand {\beamer@subsectionpages {62}{65}}
-\headcommand {\beamer@sectionpages {47}{65}}
-\headcommand {\beamer@documentpages {65}}
-\headcommand {\gdef \inserttotalframenumber {59}}
+\headcommand {\beamer@partpages {1}{63}}
+\headcommand {\beamer@subsectionpages {62}{63}}
+\headcommand {\beamer@sectionpages {47}{63}}
+\headcommand {\beamer@documentpages {63}}
+\headcommand {\gdef \inserttotalframenumber {57}}
