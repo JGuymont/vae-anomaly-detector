@@ -1,0 +1,116 @@
+{
+	"name": "boc03",
+	"data": {
+		"type": "char-level",
+		"binary": false,
+		"dir": "data",
+		"train_file": "train.csv",
+		"test_file": "test.csv",
+		"labels": {"spam": 1, "ham": 0},
+		"spam_pct": 0.1,
+		"lowercase": false,
+		"tokenizer": "char",
+		"ngram_range": [1, 2],
+		"min_df": 2,
+		"seed": 42
+	},
+	"training": {
+		"n_epochs": 1000,
+		"batch_size": 128,
+		"lr": 0.0003,
+		"loss": "nll",
+		"optimizer": "Adam",
+		"betas": [0.9, 0.99]
+	},
+	"model": {
+		"distribution": "poisson",
+		"threshold": 2.5,
+		"hidden_size": 128,
+		"latent_dim": 20,
+		"save_dir": "models",
+		"encoder": [
+			{
+				"type": "linear",
+				"in_features": "none",
+				"out_features": 128
+			},
+			{
+				"type": "relu"
+			},
+			{
+				"type": "dropout",
+				"rate": 0.5
+			},
+			{
+				"type": "batch_norm",
+				"num_features": 128
+			},
+			{
+				"type": "linear",
+				"in_features": 128,
+				"out_features": 64
+			},
+			{
+				"type": "relu"
+			},
+			{
+				"type": "dropout",
+				"rate": 0.5
+			},
+			{
+				"type": "batch_norm",
+				"num_features": 64
+			}
+		],
+		"read_mu": {
+			"in_features": 64,
+			"out_features": 20
+		},
+		"read_sigma": {
+			"in_features": 64,
+			"out_features": 20
+		},
+		"decoder": [
+			{
+				"type": "linear",
+				"in_features": 20,
+				"out_features": 64
+			},
+			{
+				"type": "relu"
+			},
+			{
+				"type": "dropout",
+				"rate": 0.5
+			},
+			{
+				"type": "batch_norm",
+				"num_features": 64
+			},
+			{
+				"type": "linear",
+				"in_features": 64,
+				"out_features": 128
+			},
+			{
+				"type": "relu"
+			},
+			{
+				"type": "dropout",
+				"rate": 0.5
+			},
+			{
+				"type": "batch_norm",
+				"num_features": 128
+			},
+			{
+				"type": "read_x",
+				"in_features": 128,
+				"out_features": "none" 
+			},
+			{
+				"type": "tanh"
+			}
+		]
+	}
+}
