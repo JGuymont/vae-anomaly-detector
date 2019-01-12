@@ -1,149 +1,78 @@
+#!/usr/bin/python3
+"""
+Prepare the data
+"""
 import random
-import string
-import re
+import os
 import numpy as np
 import pandas as pd
-import nltk
-
 import torch
 from torch.autograd import Variable
-
-from nltk.corpus import stopwords
-from nltk.stem.wordnet import WordNetLemmatizer
-
-
 from sklearn.feature_extraction.text import CountVectorizer
+from core.preprocessor import Preprocessor
 
-from core.url_regex import url_regex2 as URL_REGEX
+TOKEN_PATTERN = r"(?u)\b\w\w+\b|<\w*>|\?|\"|\'"
 
 class Data(CountVectorizer):
-    """Abstract class for the smsSpamCollection
+    """
+    Abstract class for the smsSpamCollection
 
     Args
         path: (string) path to the dataset
         split: (list) list of float [train_pct, valid_pct, test_pct]
     """
-    PUNCTUATION = [',', '.', ';', ':', '?', '!']
-    STOPWORDS = set(stopwords.words('english'))
-    LABELS = {'spam': 1, 'ham': 0}
+    def __init__(self, config):
+        self.token_type = config['tokenizer']
+        self.seed = config['seed']
+        tokenizer = list if self.token_type == 'char' else None
+        token_pattern = TOKEN_PATTERN if self.token_type == 'word' else None
+        preprocessor = Preprocessor()
+        preprocess = preprocessor.preprocess if config['tokenizer'] == 'word' else None
+        super().__init__(self, min_df=config['min_df'],
+                         lowercase=config['lowercase'],
+                         preprocessor=preprocess,
+                         tokenizer=tokenizer,
+                         token_pattern=token_pattern,
+                         ngram_range=config['ngram_range'],
+                         binary=config['binary'])
 
-    def __init__(self, path, split, labels=LABELS, punctuation=PUNCTUATION, stopwords=STOPWORDS, **kargs):
-        super().__init__(self, binary=True, min_df=3, token_pattern=r"(?u)\b\w\w+\b|@\w*@|\?|\"|\'", **kargs)
-        self.labels = labels
-        self._punctuation = punctuation
-        self._dataframe = pd.read_table(path, delimiter=',')
-        self._data = self._read_data()
-        self._data_index = self._split_index(split)
-        self.stopwords = stopwords
+        self._labels = config['labels']
+        self._spam_pct = config['spam_pct']
 
-        # self.stemmer = nltk.stem.SnowballStemmer('english')
-        self.stemmer = nltk.stem.PorterStemmer()
+        train_path = os.path.join(config['dir'], config['train_file'])
+        test_path = os.path.join(config['dir'], config['test_file'])
+        
+        self.train = self._read_data(train_path)
+        self.test = self._read_data(test_path)
 
-    def __len__(self):
-        return len(self._data)
-
-    def __getitem__(self, i):
-        return self._data[i]
-
-    def _read_data(self):
-        sms = self._dataframe.message
-        targets = self._dataframe.target
+    def _read_data(self, path):
+        """
+        spam_pct = spam / (ham + spam)
+        spam = spam_pct * ham / (1 - spam_pct)
+        """
+        dataframe = pd.read_table(path, delimiter=',')
+        if self._spam_pct:
+            random.seed(self.seed)
+            spam_idx = dataframe.index[dataframe['target'] == 'spam'].tolist()
+            len_ham = len(dataframe) - len(spam_idx)
+            len_spam = int(self._spam_pct * len_ham / (1 - self._spam_pct))
+            idx_to_remove = random.sample(spam_idx, len(spam_idx) - len_spam)
+            dataframe = dataframe.drop(idx_to_remove, axis=0)
+        sms = dataframe.message
+        if self.token_type == 'char': 
+            sms = [s.replace(' ', '') for s in sms]
+        targets = self._relabel(dataframe.target)
         return list(zip(sms, targets))
 
-    def _split_index(self, split):
-        storage = {'train': [], 'valid': [], 'test': []}
-        train_size = round(len(self)*split[0])
-        valid_size = round((len(self) - train_size)*split[1])
-
-        examples = range(len(self))
-        storage['train'] = random.sample(examples, train_size)
-        examples = [ex for ex in examples if ex not in storage['train']] # remove index
-        storage['valid'] = random.sample(examples, valid_size)
-        storage['test'] = [ex for ex in examples if ex not in storage['valid']]
-        return storage
-
     def _relabel(self, targets):
-        for label in self.labels.keys():
-            targets[targets == label] = self.labels[label]
+        for label in self._labels.keys():
+            targets[targets == label] = self._labels[label]
         return targets
-
-    def _remove_punctuation(self, sms):
-        for punc in self._punctuation:
-            sms = sms.replace(punc, ' ')
-        return sms
-
-    def _replace_dollar_sign(self, sms):
-        sms = sms.replace('$', ' @dollar_sign@ ')
-        return sms
-
-    def _replace_email(self, sms):
-        regex = re.compile(r"[\w\.-]+@[\w\.-]+\.\w+", re.IGNORECASE)
-        sms = regex.sub(' @email_address@ ', sms)
-        return sms
-
-    def _replace_url(self, sms):
-        regex = re.compile(r"https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+", re.IGNORECASE)
-        sms = regex.sub(' @url@ ', sms)
-        return sms
-
-    def _replace_one_letter_word(self, sms):
-        for letter in list(string.ascii_lowercase):
-            regex = re.compile(r"\b[{}]\b".format(letter), re.IGNORECASE)
-            sms = regex.sub('@{}@'.format(letter), sms)
-        return sms
-
-    def _replace_long_digit_seq(self, sms):
-        regex = re.compile(r"\b\d\d\d\d\d\d\d\d+\b", re.IGNORECASE)
-        sms = regex.sub('@long_digit@', sms)
-        return sms
-
-    def replace_medium_digit_seq(self, string_):
-        regex = re.compile(r"\b0\d\d\d+\b", re.IGNORECASE)
-        string_ = regex.sub('@medium_digit@', string_)
-        return string_
-
-    def replace_small_digit_seq(self, string_):
-        regex = re.compile(r"\b0\d+\b", re.IGNORECASE)
-        string_ = regex.sub('@small_digit@', string_)
-        return string_
-
-    def replace_number(self, string_):
-        regex = re.compile(r"\b0|[1-9][0-9]+\b", re.IGNORECASE)
-        string_ = regex.sub('@number@', string_)
-        return string_
-
-    def _preprocess(self, x):
-        """Preprocess a string
-        """
-        x = x.lower()
-        x = self._replace_dollar_sign(x)
-        x = self._replace_email(x)
-        x = self._replace_url(x)
-        x = self._replace_one_letter_word(x)
-        x = self._replace_long_digit_seq(x)
-        x = self.replace_medium_digit_seq(x)
-        x = self.replace_small_digit_seq(x)
-        x = self.replace_number(x)
-        # x = self._remove_punctuation(x)
-        x = x.split()
-        x = [self.stemmer.stem(w) for w in x]
-        x = [w for w in x if w not in self.stopwords]
-        return ' '.join(x)
-
-    def preprocess(self):
-        text_messages = self._dataframe.message
-        preprocessed_text_messages = []
-        for sms in text_messages:
-            preprocessed_sms = self._preprocess(sms)
-            preprocessed_text_messages.append(preprocessed_sms)
-        targets = self._relabel(self._dataframe.target)
-        self._data = list(zip(preprocessed_text_messages, targets))
 
     def _get_raw_document(self):
         raw_document = []
-        for i in self._data_index['train']:
-            input, _ = self[i]
-            raw_document.append(input)
+        for text, _ in self.train:
+            raw_document.append(text)
         return raw_document
 
     def vectorize(self):
@@ -152,14 +81,12 @@ class Data(CountVectorizer):
         *) Word of one letter are removed*
         *) Apostrophe are removed
         """
-        preprocessed_sms_file = open("./data/preprocessed_sms.txt", "w")
         raw_document = self._get_raw_document()
         self.fit(raw_document)
-        for i in range(len(self)):
-            input, target = self[i]
-            preprocessed_sms_file.write(' '.join([w for w in input.split() if w in self.vocabulary_])+'\n')
-            self._data[i] = (self.transform([input]).toarray(), target)
-        preprocessed_sms_file.close()
+        for i, (text, target) in enumerate(self.train):
+            self.train[i] = (self.transform([text]).toarray(), target)
+        for i, (text, target) in enumerate(self.test):
+            self.test[i] = (self.transform([text]).toarray(), target)
         self._log_vocabulary()
 
     def _log_vocabulary(self):
@@ -169,42 +96,41 @@ class Data(CountVectorizer):
             vocab_file.write(w+'\n')
         vocab_file.close()
 
-    def train(self):
-        return [self._data[i] for i in self._data_index['train']]
-
-    def valid(self):
-        return [self._data[i] for i in self._data_index['valid']]
-
-    def test(self):
-        return [self._data[i] for i in self._data_index['test']]
-
-    def bow_to_string(self, bow):
-        """does not work"""
-        string = ''
-        for i in bow:
-            curr_word = self.vocabulary_[i]
-            string += '{} '.format(curr_word)
-        return string
-
+    @property
     def data_size_(self):
-        return len(self)
+        """
+        Number of examples
+        """
+        return len(self.train)
 
-    def input_dim_(self):
-        return len(self.vocabulary_)
-
-    def inputs_(self):
-        inputs, _ = zip(*self._data)
-        return list(inputs)
-
+    @property
     def targets_(self):
-        _, targets = zip(*self._data)
+        """
+        Targets of the data
+        """
+        _, targets = zip(*self.train)
         return list(targets)
 
-    def spam_count_(self):
-        return self.targets_().count(self.labels['spam'])
+    @property
+    def input_dim_(self):
+        """
+        Number of features
+        """
+        return len(self.vocabulary_)
 
+    @property
+    def spam_count_(self):
+        """
+        Number of spam if the data
+        """
+        return self.targets_.count(self._labels['spam'])
+
+    @property
     def spam_percentage_(self):
-        return self.spam_count_() / self.data_size_()
+        """
+        Percentage of spam in the data
+        """
+        return self.spam_count_ / self.data_size_
 
 class DataLoader:
 
