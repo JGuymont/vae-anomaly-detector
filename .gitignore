@@ -1,3 +1,22 @@
+# Latex
+Latex/report.log
+Latex/report.bbl
+Latex/report.aux
+Latex/report.blg
+Latex/report.out
+Latex/report.synctex.gz
+
+# Docs
+docs/old
+docs/latex/_minted-vae/
+docs/latex/vae.aux
+docs/latex/vae.nav
+docs/latex/vae.out
+docs/latex/vae.snm
+docs/latex/vae.synctex.gz
+docs/latex/vae.toc
+docs/latex/vae.vrb
+
 data/
 # Byte-compiled / optimized / DLL files
 __pycache__/
