@@ -6,6 +6,8 @@
 % page formating
 \setlength{\parindent}{0pt}
 
+\usepackage{comment}
+
 % fonts
 \usefonttheme{professionalfonts}
 \usefonttheme[onlymath]{serif}
@@ -32,6 +34,7 @@
 % new commands
 \newcommand{\real}{\mathbb{R}}
 \newcommand{\bernoulli}{\mathrm{Bernoulli}}
+\newcommand{\poisson}{\mathrm{Poisson}}
 \newcommand{\relu}{\mathrm{relu}}
 \newcommand{\sig}{\mathrm{sigmoid}}
 \newcommand{\kldiv}{\mathcal{D}_{KL}}
@@ -46,7 +49,7 @@
 \title{Machine Learning Workshop 2}
 \subtitle{Variational Autoencoder}
 \author{Jonathan~Guymont}
-\date{National Bank of Canada, 2018}
+\date{National Bank of Canada, 2019}
 
 \AtBeginSubsection[]
 {
@@ -75,7 +78,7 @@
 	\includegraphics[scale=0.3]{image_to_array}
 	\caption{Conversion of a greyscale image to an matrix}
 \end{figure}
-Note: In the workshop, we will mostly work with linear layer, so we also need to flatten the image.
+Note: In the workshop, we will mostly work with linear layers, so we also need to flatten the image.
 \begin{minted}[bgcolor=LightGray, fontsize=\footnotesize]{python}
 from PIL import Image
 def image_to_array(image_path):
@@ -89,15 +92,15 @@ def image_to_array(image_path):
 \subsection{Autoencoders}
 
 \begin{frame}{Autoencoders}
-Autoencoers are neural network that are trained to learn how to map their input to their input. Internally, it has an hidden layer $\bm{h}$ that contains a lossy summary of the relevant feature for the task.
+Autoencoers are neural networks that are trained to learn how to map their input to their input. Internally, it has a hidden layer $\bm{h}$ that contains a lossy summary of the relevant features for the task.
 \end{frame}
   
 \begin{frame}{Autoencoders}
-An autoencoder can be seen has a two parts network
+An autoencoder can be seen has a two parts network:
 \begin{itemize}
 	\item Encoder function: $\bm{z}=f_\phi(\bm{x})$ \pause
 	\item Decoder function: $\tilde{\bm{x}} = g_\theta(\bm{z})$ \pause
-	\item $\phi$ and $\theta$ are set of learned parameters \pause
+	\item $\phi$ and $\theta$ are sets of learned parameters
 \end{itemize}
 \end{frame}
 
@@ -158,7 +161,7 @@ class Autoencoder:
 class Autoencoder:
         ...
     def encoder(self, x):
-        z = F.relu(self.Wxz @ z + self.bxz.repeat(x.size(0), 1))
+        z = F.relu(self.Wxz @ z + self.bxz)
         return z
 \end{minted}
 \end{frame}
@@ -173,7 +176,7 @@ class Autoencoder:
 class Autoencoder:
         ...
     def decoder(self, z):
-        x_recon = F.sigmoid(z @ self.Wzx + self.bzx.repeat(z.size(0), 1))
+        x_recon = F.sigmoid(self.Wzx @ z + self.bzx)
         return x_recon
 \end{minted}
 \end{frame}
@@ -207,11 +210,11 @@ class Autoencoder:
         bzx = Variable(torch.zeros(X_dim), requires_grad=True)
     
     def encoder(self, x):
-        z = F.relu(x @ self.Wxh + self.bxh.repeat(x.size(0), 1))
+        z = F.relu(self.Wxh @ x + self.bxh)
         return z
     
     def decoder(self, z):
-        x_recon = F.sigmoid(z @ self.Wzx + self.bzx.repeat(z.size(0), 1))
+        x_recon = F.sigmoid(self.Wzx @ z + self.bzx)
         return x_recon
     
     def forward(self, x):
@@ -222,7 +225,7 @@ class Autoencoder:
 \end{frame}
 
 \begin{frame}{Autoencoder - Loss Function}
-If you treat the problem like a \textit{regression}\footnote{If you do regression, you don't have to apply sigmoid in the decoder.}, use the mean square error between the input and the reconstruction
+If you treat the problem like a \textit{regression}\footnote{If you do regression, you don't have to apply sigmoid in the decoder.}, use the mean square error between the inputs and the reconstructions
 \begin{equation}
 \mathcal{L} = \sum_{i=1}^d (x_i-\tilde{x}_i)^2
 \end{equation}
@@ -240,7 +243,7 @@ If you treat the problem like a \textit{regression}\footnote{If you do regressio
 		\STATE Sample $\{x^{(1)},...,x^{(m)}\}$ from $X$ and $\{y^{(1)},...,y^{(m)}\}$ from $Y$
 		\STATE Remove samples from $X$ and $Y$
 		\STATE Compute gradient $\bm{g}_t=\frac{1}{m}\nabla_{\bm{\omega}}\sum_i \mathcal{L}(\tilde{x}^{(i)}, x^{(i)})$  
-		\STATE Apply update: $\mathbf{\omega}_t=\bm{\omega}_{t-1}-\eta\cdot \bm{g}_t$
+		\STATE Apply update: $\bm{\omega}_t=\bm{\omega}_{t-1}-\eta\cdot \bm{g}_t$
 		\ENDWHILE
 		\ENDFOR
 	\end{algorithmic}
@@ -286,16 +289,16 @@ def train(self, trainloader, num_epochs, learning_rate):
 
 To summarize
 \begin{itemize}
-	\item A neural network encode $x$ in a hidden state $z$ of smaller dimension
-	\item Another neural network decode $z$ to reconstruct $x$
-	\item A sound loss function could be the mean square error between the input and its reconstruction.
-	\item Both network can be train at the same time with gradient method.
+	\item A neural network encodes $x$ in a hidden state $z$ of smaller dimension.
+	\item Another neural network decodes $z$ to reconstruct $x$.
+	\item A sound loss function could be the mean square error between the inputs and their reconstructions.
+	\item Both network can be train at the same time with stochastic subgradient method.
 \end{itemize}
 \end{frame}
 
-\section{Variational autoencoder}
+\section{Variational autoencoders}
 
-\subsection{Generative Model}
+\subsection{Generative Models}
 
 \begin{frame}{Generative Models}
 Represent the probability distribution of either $P(X,Y)$ or $P(X)$. In the case of \textit{density estimation}, we are looking for a representation of
@@ -307,7 +310,7 @@ Represent the probability distribution of either $P(X,Y)$ or $P(X)$. In the case
 \normalsize
 For example, $x\sim \mathcal{N}(x;\bm{\mu}_{\text{mle}}, \bm{\sigma}_{\text{mle}})$ \\
 
-Problem: Most parametric distribution make strong (and often wrong) assumption about the distribution.
+Problem: Most parametric distributions make strong (and often wrong) assumptions about the distribution.
 \end{frame}
 
 \subsection{Latent variable models}
@@ -321,7 +324,7 @@ Problem: Most parametric distribution make strong (and often wrong) assumption a
 	\[
 		z\sim \mathcal{N}(z;\bm{0}, \bm{I})
 	\]
-	Then we can train a model to learn a good representation of $p_\theta (x|z)$ with stochastic gradient.
+	Then we can train a model to learn a good representation of $p_\theta (x|z)$ with stochastic gradient descent.
 \end{frame}
 
 \begin{frame}{Latent variable models}
@@ -339,11 +342,11 @@ Problem: Most parametric distribution make strong (and often wrong) assumption a
 \end{frame}
 
 \begin{frame}{Latent variable models}
-	Problem 1: To learn $p_\theta(x|z)$ using stochastic gradient, we need to know a good mapping 
+	Problem 1: To learn $p_\theta(x|z)$ using stochastic gradient descent, we need to know a good mapping 
 	\[
 		f: \mathcal{Z}\times \Theta \mapsto \mathcal{X}
 	\]
-	In other word when we sample $x\sim p(x|z')$ we need to know which $x$ is likely to be generated by this particular $z'$ in order to train the model.
+	In other words when we sample $x\sim p(x|z')$ we need to know which $x$ is likely to be generated by this particular $z'$ in order to train the model.
 \end{frame}
 
 \begin{frame}{Latent variable models}
@@ -372,11 +375,11 @@ Problem: Most parametric distribution make strong (and often wrong) assumption a
 		\item Sample $z \sim q_\phi(z|x)$
 		\item Sample $\tilde{x} \sim p_\theta(x|z)$
 	\end{itemize}
-	The parameter to learn are $\phi$ and $\theta$ and they should be learn such that the marginal likelihood $p(x)$ is maximized.
+	The sets of parameters to learn are $\phi$ and $\theta$ and they should be learn such that the marginal likelihood $p(x)$ is maximized.
 \end{frame}
 
 \begin{frame}{Latent variable models}
-	Before looking at how we can train this model efficiently, let's take a closer look at how it works concretely.
+	Before looking at how we can train this model efficiently, let's take a closer look at how it works.
 \end{frame}
 
 \begin{frame}[fragile]{Probabilistic Encoder $q_\phi(z|x)$}
@@ -384,27 +387,27 @@ Problem: Most parametric distribution make strong (and often wrong) assumption a
 	\begin{itemize}
 		\item $\bm{\mu}_z,~\log\bm{\sigma}_z^2=f(\mathbf{x};\bm{\phi})$
 		\begin{itemize}
-			\item $\mathbf{h} = \relu\left(x W_{xh}+b_{xh}\right)$
-			\item $\mu = h W^{(1)}_{hz}+b^{(1)}_{hz}$
-			\item $\log \sigma^2 = h W^{(2)}_{hz}+b^{(2)}_{hz}$
+			\item $\mathbf{h} = \relu\left(\mathbf{W}_{xh}\mathbf{x}+\mathbf{b}_{xh}\right)$
+			\item $\bm{\mu} = \mathbf{W}^{(1)}_{hz}\mathbf{h}+\mathbf{b}^{(1)}_{hz}$
+			\item $\log \bm{\sigma}^2 = \mathbf{W}^{(2)}_{hz}\mathbf{h}+\mathbf{b}^{(2)}_{hz}$
 		\end{itemize}
-		\item $q_\phi(z|x)=\mathcal{N}(\mathbf{z};\bm{\mu}_z, \bm{\sigma}_z^2)$
-		\item $\phi = \{W^{(1)}_{hz}, b^{(1)}_{hz}, W^{(2)}_{hz}, b^{(2)}_{hz}, W_{xh}, b_{xh}\}$
+		\item $q_\phi(\mathbf{z}|\mathbf{x})=\mathcal{N}(\mathbf{z};\bm{\mu}_z, \bm{\sigma}_z^2)$
+		\item $\phi = \{\mathbf{W}^{(1)}_{hz}, \mathbf{b}^{(1)}_{hz}, \mathbf{W}^{(2)}_{hz}, \mathbf{b}^{(2)}_{hz}, \mathbf{W}_{xh}, \mathbf{b}_{xh}\}$
 	\end{itemize}
 \begin{minted}[bgcolor=LightGray, fontsize=\footnotesize]{python}
 class VAE:
     ...
     def encoder(self, x):
         # Encoder network. Return the parameter of q(z|x)
-        h = relu(x @ self.Wxh + self.bxh.repeat(x.size(0), 1))  
-        mu = h @ self.Whz_mu + self.bhz_mu.repeat(x.size(0), 1)      
-        log_var = h @ self.Whz_var + self.bhz_var.repeat(x.size(0), 1)
-        reture mu, log_var
+        h = relu(self.Wxh @ x + self.bxh)
+        mu = self.Whz_mu @ h + self.bhz_mu      
+        logvar = self.Whz_var @ h + self.bhz_var
+        reture mu, logvar
 \end{minted}
 \end{frame}
 
 \begin{frame}[fragile]{Sampling $z\sim q_\phi(z|x)$}
-Example: Sampling $z$ from $q_\phi(z|x)$
+Example: Sampling $\mathbf{z}$ from $q_\phi(\mathbf{z}|\mathbf{x})$
 \begin{itemize}
 	\item $\mathbf{z}\sim \mathcal{N}(\bm{\mu}_z, \bm{\sigma}_z)$
 	\begin{itemize}
@@ -416,9 +419,9 @@ Example: Sampling $z$ from $q_\phi(z|x)$
 \begin{minted}[bgcolor=LightGray, fontsize=\footnotesize]{python}
 class VAE:
     ...
-    def _sample_z(self, mu, log_var):
-        epsilon = Variable(torch.randn(mu.size()).to(self._device)
-        sigma = torch.exp(log_var / 2)
+    def _sample_z(self, mu, logvar):
+        epsilon = Variable(torch.randn(mu.size())
+        sigma = torch.exp(logvar / 2)
         return mu + sigma * epsilon
 \end{minted}
 \end{frame}
@@ -429,11 +432,11 @@ class VAE:
 		\item $\bm{\mu}_x,~\log\bm{\sigma}_x^2=g(\mathbf{x};\bm{\theta})$
 		\begin{itemize}
 			\item $\mathbf{h} = \relu\left(\mathbf{W}_{zh}\mathbf{x}+\mathbf{b}_{zh}\right)$
-			\item $\bm{\mu}_x = W^{(1)}_{hz}\mathbf{h}+\mathbf{b}^{(1)}_{hz}$
-			\item $\log \bm{\sigma}_x^2 = W^{(2)}_{hz}\mathbf{h}+\mathbf{b}^{(2)}_{hz}$
+			\item $\bm{\mu}_x = \mathbf{W}^{(1)}_{hz}\mathbf{h}+\mathbf{b}^{(1)}_{hz}$
+			\item $\log \bm{\sigma}_x^2 = \mathbf{W}^{(2)}_{hz}\mathbf{h}+\mathbf{b}^{(2)}_{hz}$
 		\end{itemize}
-		\item $p_{\bm{\theta}}(x|z)=\mathcal{N}(x;\bm{\mu}_x, \log\bm{\sigma}_x^2)$
-		\item $\bm{\theta} = \{W_{zh}, b_{zh}, W_{zx}, b_{zx}\}$
+		\item $p_{\bm{\theta}}(\mathbf{x}|\mathbf{z})=\mathcal{N}(\mathbf{x};\bm{\mu}_x, \log\bm{\sigma}_x^2)$
+		\item $\bm{\theta} = \{\mathbf{W}_{zh}, \mathbf{b}_{zh}, \mathbf{W}_{zx}, \mathbf{b}_{zx}\}$
 	\end{itemize}
 \begin{minted}[bgcolor=LightGray, fontsize=\footnotesize]{python}
 class VAE:
@@ -441,20 +444,21 @@ class VAE:
     def decoder(self, z):
         # Decoder network. Reconstruct the input from 
         # the latent variable z
-        h = relu(z @ self.Whx + self.bhx.repeat(x.size(0), 1))  
-        gamma = h @ self.Whx_mu + self.bhx.repeat(x.size(0), 1)      
-        reture gamma
+        h = relu(self.Wzh @ z + self.bzh)
+        mu_x = self.Whx_mu @ h + self.bhx_mu
+        logvar_x = self.Whx_var @ h + self.bhx_var
+        return mu_x, logvar_x
 \end{minted}
 \end{frame}
 
 \begin{frame}{Latent variable models}
-	To summarize
+	To summarize:
 	\begin{itemize}
 		\item Sample $x \sim D_n$
 		\item Sample $z \sim q_\phi(z|x)$
 		\item Sample $\tilde{x} \sim p_\theta(x|z)$
 	\end{itemize}
-	The parameter to learn are $\phi$ and $\theta$ and they should be learn such that the marginal likelihood $p(x)$ is maximized.
+	The sets of parameters to learn are $\phi$ and $\theta$ and they should be learn such that the marginal likelihood $p(x)$ is maximized.
 \end{frame}
 
 \subsection{Variational Lower Bound}
@@ -462,7 +466,7 @@ class VAE:
 \begin{frame}{Training VAE}
 	We need $p_\theta(x|z)$ to be such that the marginal likelihood $p(x)$ is maximized. \\
 	
-	In other word the lost function should be
+	In other words, the lost function should be
 	\huge
 	\[
 		\mathcal{L}(x;\phi, \theta) = -\log p(x)	
@@ -472,7 +476,7 @@ class VAE:
 \begin{frame}{Kullback-Leibler divergence}
 
 	\begin{block}{Kullback-Leibler divergence}
-		Let $p(x)$ and $q(x)$ be probability measures over a set $X$, and $q(x)$ is absolutely continuous with respect to $p(x)$, then the Kullback?Leibler divergence from $p$ to $q$ is defined as
+		Let $p(x)$ and $q(x)$ be probability measures over a set $X$, and $q(x)$ is absolutely continuous with respect to $p(x)$, then the Kullback-Leibler divergence from $p$ to $q$ is defined as
 		\begin{equation*}
 			\begin{split}
 			\kldiv[q(x)||p(x)] 
@@ -491,7 +495,7 @@ class VAE:
 
 \begin{frame}{Variational Lower Bound}
 	\begin{corollary}
-		The marginal log-likelihood $\log p(x)$ is lower bounded by the \textit{variational lower bound} i.e
+		The marginal log-likelihood $\log p(x)$ is lower bounded by the \textit{variational lower bound} i.e.
 		\[
 			\log p(x)  \geq \E_{z\sim q(z|x)}\log p(x|z)- \kldiv[q(z|x)||p(z)]
 		\]
@@ -506,7 +510,7 @@ class VAE:
 \begin{frame}{Proof of the Variational Lower Bound}
 	\begin{proof}
 		\scriptsize
-		First, let's compute de Kullback-Leibler divergence $\kldiv$ between $p(z|x)$ and $q(z|x)$
+		First, let's compute the Kullback-Leibler divergence $\kldiv$ between $p(z|x)$ and $q(z|x)$
 		\begin{equation*}
 		\begin{split}
 		\kldiv[q(z|x)||p(z|x)] 
@@ -520,7 +524,7 @@ class VAE:
 		\[
 			\log p(x) = \E_{z\sim q(z|x)}\log p(x|z)- \kldiv[q(z|x)||p(z)] + \kldiv[q(z|x)||\log p(z|x)]
 		\]
-		Finally, because of Gibbs' inequality we have
+		Finally, because of Gibbs' inequality, we have
 		\[
 			\boxed{\log p(x)  \geq \E_{z\sim q(z|x)}\log p(x|z)- \kldiv[q(z|x)||p(z)]}
 		\]
@@ -611,11 +615,11 @@ def kl_divergence(mu, log_sigma):
 \begin{frame}{Choice of $p_\theta(x|z)$}
 	In our example, we used $p_\theta(x|z)=\mathcal{N}(x;\bm{\mu}_z, \bm{\sigma}_z)$. In practice you can use any distribution you want. \\
 	
-	Some important aspect to consider
+	Some important aspects to consider:
 	\begin{itemize}
 		\item The image of the distribution must correspond to the input space.\pause
-		\item Choose a distribution that make sense base on you knowledge of the problem. \pause
-		\item If the domain is continuous on the real number a normal distribution can make sense \pause
+		\item Choose a distribution that makes sense based on your knowledge of the problem. \pause
+		\item If the domain is continuous on the real number, a normal distribution can make sense. \pause
 		\item If the domain is discrete, choose a discrete distribution like a Bernoulli or a Poisson.
 	\end{itemize}
 \end{frame}
@@ -634,7 +638,7 @@ def kl_divergence(mu, log_sigma):
 	\begin{itemize}
 		\item Estimate the distribution of all the text messages
 		\item Evaluate the density of each text message
-		\item Text message with low density are classified as spam
+		\item Text messages with low density are classified as spam
 	\end{itemize}
 \end{itemize}
 \end{frame}
@@ -643,35 +647,14 @@ def kl_divergence(mu, log_sigma):
 \begin{itemize}
 	\item Examples of \textbf{non spams}
 	\begin{itemize}
-		\item \textit{What you doing?how are you?}
-		\item \textit{Ok lar... Joking wif u oni...} 
-		\item \textit{Cos i was out shopping wif darren jus now n i called him 2 ask wat present he wan lor. Then he started guessing who i was wif n he finally guessed darren lor.}
+		\item \textit{What are you doing? how are you?}
+		\item \textit{Ok lar... Joking wif u oni...}
 	\end{itemize} 
 	\item Examples of \textbf{spams}
 	\begin{itemize}
-		\item  \textit{FreeMsg: Txt: CALL to No: 86888 \& claim your reward of 3 hours talk time to use from your phone now! ubscribe6GBP/ mnth inc 3hrs 16 stop?txtStop}
-		\item  \textit{Sunshine Quiz! Win a super Sony DVD recorder if you canname the capital of Australia? Text MQUIZ to 82277. B}
-		\item \textit{URGENT! Your Mobile No 07808726822 was awarded a L2,000 Bonus Caller Prize on 02/09/03! This is our 2nd attempt to contact YOU! Call 0871-872-9758 BOX95QUm}
+		\item \textit{Your mobile No 07808726822 was awarded a L2,000 Bonus Caller Prize on 02/09/03! This is our 2nd attempt to contact you! Call 0871-872-9758 as soon as possible.}
 	\end{itemize}
 \end{itemize}
-\end{frame}
-
-\begin{frame}{Performance Metric}
-\begin{equation}
-	\begin{split}
-		\mathrm{F_1-Score} =&
-		\left(\frac{\mathrm{recall}^{-1} + \mathrm{precision}^{-1}}{2}\right)^{-1}\\
-		=&
-		2\cdot \frac{\mathrm{precision}\cdot \mathrm{recall}}{\mathrm{precision}+\mathrm{recall}}
-	\end{split}
-	\end{equation}
-	where 
-	\begin{equation*}
-	\mathrm{precision} = \frac{|\{\mathrm{spams~detected}\}|}{|\{\mathrm{spams~classified}\}|}
-	~~~~~
-	\mathrm{recall} = \frac{|\{\mathrm{spams~detected}\}|}{|\{\mathrm{spams}\}|}
-	\end{equation*}
-	Motivation: Both precision and recall metric are important. Take the harmonic mean between them.
 \end{frame}
 
 %\begin{frame}{Anomaly detection and autoencoder}
@@ -685,6 +668,7 @@ def kl_divergence(mu, log_sigma):
 
 \subsection{Preprocessing}
 
+\begin{comment}
 \begin{frame}{Preprocessing}
 	\begin{itemize}
 		\item Some terminology
@@ -695,6 +679,7 @@ def kl_divergence(mu, log_sigma):
 		\end{itemize}
 	\end{itemize}
 \end{frame}
+\end{comment}
 
 \begin{frame}[fragile]{Bag of words}
 	\begin{itemize}
@@ -720,7 +705,7 @@ print(x)
 	\item Bag of words
 	\begin{itemize}
 		\item All examples in the corpus have the same length. 
-		\item The value of a position in the vector is equal to the frequency of this word it the example.
+		\item The value of a position in the vector is equal to the frequency of the corresponding word in the example.
 		\item $x^{(i)}=[0\cdots0~1~0\cdots~0~2~0\cdots0]$
 	\end{itemize}
 	\item Binary bag of words
@@ -732,6 +717,7 @@ print(x)
 \end{itemize}
 \end{frame}
 
+\begin{comment}
 \subsection{Binary Cross Entropy}
 
 \begin{frame}{Binary Cross Entropy}
@@ -767,27 +753,45 @@ And the log-likelihood is given by
 functional.binary_cross_entropy(param, x)
 \end{minted}
 \end{frame}
+\end{comment}
 
-\subsection{Bernoulli MLP as Decoder}
+\subsection{Decoders}
 
-\begin{frame}[fragile]{Probabilistic Decoder $p_\theta(x|z)$}
-Bernoulli MLP as decoder
+\begin{frame}[fragile]{Bernoulli Decoder $p_\theta(x|z)$}
 \begin{itemize}
 	\item $\bm{\gamma}=g(z;\bm{\theta})$
 	\begin{itemize}
-		\item $h = \relu\left(W_{zh}x+b_{zh}\right)$
-		\item $\gamma = \sigma\left(W_{hx}h+b_{hx}\right)$
+		\item $\mathbf{h} = \relu\left(\mathbf{W}_{zh}\mathbf{z}+\mathbf{b}_{zh}\right)$
+		\item $\bm{\gamma} = \sigma\left(\mathbf{W}_{hx}\mathbf{h}+\mathbf{b}_{hx}\right)$
 	\end{itemize}
-	\item $p_\theta(x|z)=\bernoulli(x;\bm{\gamma})$
-	\item $\bm{\theta} = \{W_{zh}, b_{zh}, W_{zx}, b_{zx}\}$
+	\item $p_\theta(\mathbf{x}|\mathbf{z})=\prod_i\gamma_i^{x_i}(1-\gamma_i)^{(1-x_i)}$
 \end{itemize}
 \begin{minted}[bgcolor=LightGray, fontsize=\footnotesize]{python}
 class VAE:
     ...
     def decoder(self, z):
-        h = relu(self.W_zh @ z + self.b_zh.repeat(x.size(0), 1))  
-        gamma = self.W_hx @ h + self.b_hx.repeat(x.size(0), 1)      
+        h = relu(self.W_zh @ z + self.b_zh)  
+        gamma = F.sigmoid(self.W_hx @ h + self.b_hx)      
         reture gamma
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]{Poisson Decoder $p_\theta(x|z)$}
+\begin{itemize}
+	\item $\bm{\lambda}=g(\mathbf{z};\bm{\theta})$
+	\begin{itemize}
+		\item $\mathbf{h} = \relu\left(\mathbf{W}_{zh}\mathbf{z}+\mathbf{b}_{zh}\right)$
+		\item $\log\bm{\lambda} = \tanh\left(\mathbf{W}_{hx}\mathbf{h}+\mathbf{b}_{hx}\right)$
+	\end{itemize}
+	\item $p_\theta(\mathbf{x}|\mathbf{z})=\prod_i e^{-\lambda_i}\frac{\lambda_i^{x_i}}{x_i!}$
+\end{itemize}
+\begin{minted}[bgcolor=LightGray, fontsize=\footnotesize]{python}
+class VAE:
+    ...
+    def decoder(self, z):
+        h = relu(self.W_zh @ z + self.b_zh  
+        loglambda = F.tanh(self.W_hx @ h + self.b_hx)
+        reture loglambda
 \end{minted}
 \end{frame}
 
@@ -796,15 +800,29 @@ class VAE:
 \begin{frame}{Anomaly detection}  
 \begin{algorithm}[H]
 	\begin{algorithmic}
-		\REQUIRE Learning rate $\epsilon_k$
-		\REQUIRE Initial parameter $\bm{w}_0$
-		\REQUIRE Number of epochs $T$
-		\FOR{$i=1$ to $T$}
-		\STATE Compute gradient $\bm{g}_t=\frac{1}{m}\nabla_w\sum_i L(h_{w_{t-1}}(\bm{x}^{(i)}), \bm{y}^{(i)})$ 
-		\STATE Apply update: $\bm{w}_t=\bm{w}_{t-1}-\epsilon \bm{g}_t$
-		\ENDFOR
+		\REQUIRE Density Threshold $\mathcal{T}$
+		\REQUIRE Sets of trained parameters $\phi$ and $\theta$
+		\STATE Sample $\mathbf{z}^{(1)},...,\mathbf{z}^{(1)}$ from $q_\phi(\mathbf{z}|\mathbf{x}^{(i)})$
+		\STATE Compute $p(\mathbf{x})\approx\frac{1}{L}\sum_{i=1}^L p_\theta(\mathbf{x}|\mathbf{z}^{(i)})$
+		\STATE If $p(\mathbf{x})<\mathcal{T}$, then $\mathbf{x}$ is classified as an outlier
 	\end{algorithmic}
-	\caption{Pseudocode for Batch Gradient Descent}
+	\caption{Pseudocode for Anomaly detection}
+	\label{alg:se}
+\end{algorithm}
+\end{frame}
+
+\begin{frame}{Anomaly detection}  
+\begin{algorithm}[H]
+	\begin{algorithmic}
+		\REQUIRE Percentile threshold $k$
+		\REQUIRE Trained parameters $\phi$ and $\theta$
+		\FOR{$i=1$ to $N$}
+		\STATE Sample $\mathbf{z}^{(1)},...,\mathbf{z}^{(1)}$ from $q_\phi(\mathbf{z}|\mathbf{x}^{(i)})$
+		\STATE Compute $p(\mathbf{x}^{(i)})\approx\frac{1}{L}\sum_{i=1}^L p_\theta(\mathbf{x}|\mathbf{z}^{(i)})$
+		\ENDFOR
+		\STATE $\mathcal{T}=p(\bm{x}^{(\tau)})$ where $|\{\bm{x} : p(\bm{x}) < p(\bm{x}^{(\tau)})\}|=k\cdot N$
+	\end{algorithmic}
+	\caption{Pseudocode to find the density threshold}
 	\label{alg:se}
 \end{algorithm}
 \end{frame}
@@ -826,7 +844,7 @@ class VAE:
 
 \begin{frame}{Results}
 \begin{table}[h]
-	\caption{Test results of the spam detection and the modelization of the text distribution. The test data represent 50\% of the entire data set. The confidence interval are du to the randomness cause by the samplig of the latent variable $\mathbf{z}$ when evaluating the probability.}
+	\caption{Test results of the spam detection and the modelization of the text distribution. The test data represent 50\% of the entire data set. The confidence interval are due to the randomness caused by the sampling of the latent variable $\mathbf{z}$ when evaluating the probability.}
 	\centering
 	\begin{adjustbox}{max width=\textwidth}
 		\begin{tabular}{lrrrr}
