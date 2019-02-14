@@ -1,10 +1,12 @@
+.pylintrc
+
 # Latex
-Latex/report.log
-Latex/report.bbl
-Latex/report.aux
-Latex/report.blg
-Latex/report.out
-Latex/report.synctex.gz
+latex/report.log
+latex/report.bbl
+latex/report.aux
+latex/report.blg
+latex/report.out
+latex/report.synctex.gz
 
 # Docs
 docs/old
@@ -17,7 +19,6 @@ docs/latex/vae.synctex.gz
 docs/latex/vae.toc
 docs/latex/vae.vrb
 
-data/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
