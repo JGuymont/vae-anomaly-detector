@@ -21,7 +21,7 @@ def argparser():
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('--csv_path', type=str, default='./data/spam.csv')
-    parser.add_argument('--train_size', type=float, default=0.5)
+    parser.add_argument('--train_size', type=float, default=0.8)
     parser.add_argument('--out_dir', type=str, default='./data')
     return parser.parse_args()
 
@@ -63,9 +63,8 @@ def save_data(dataframe, name, args):
     """
     Save a dictionary data to a pickle file
     """
-    out_dir = '{}/{}.csv'.format(
-        args.out_dir, name)
-    dataframe.to_csv(out_dir, index=False)
+    out_dir = '{}/{}.csv'.format(args.out_dir, name)
+    dataframe.to_csv(out_dir, index=False, quotechar='"')
 
 
 def main(args):
