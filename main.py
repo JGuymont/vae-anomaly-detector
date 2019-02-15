@@ -7,13 +7,18 @@ from core.data import Data
 from core.vae import VAE
 from core import utils
 from core.data import DataLoader
+from utils.data import SpamDataset
+from torchtext.data import TabularDataset, Field, Iterator
+
 
 MODELS = ['bow', 'binary_bow', 'boc']
+
 
 def argparser():
     """
     Command line argument parser
     """
+
     parser = argparse.ArgumentParser(description='VAE spam detector')
 
     parser.add_argument('--model', '-m', type=str, choices=['bow', 'binary_bow', 'boc', 'all'])
@@ -27,6 +32,7 @@ def argparser():
 
     return parser.parse_args()
 
+
 def load_config(args):
     """
     Load json configuration file
@@ -38,6 +44,7 @@ def load_config(args):
     if args.lr is not None:
         config['training']['lr'] = args.lr
     return config
+
 
 def main(args):
     """
@@ -96,5 +103,16 @@ def main(args):
         print(utils.mean_confidence_interval(logliks))
         print(utils.mean_confidence_interval(kldivs))
 
+def tokenizer(string):
+    return [char for char in string]
+
 if __name__ == '__main__':
-    main(argparser())
+    args = argparser()
+    config = load_config(args)
+
+    data = SpamDataset(csv_path=config['data']['csv_path'])
+
+    for x, y in data:
+        print(x, y)
+        print(tokenizer(x))
+        exit()
