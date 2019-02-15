@@ -16,6 +16,8 @@ In order to use the system, you will need to install the following dependencies:
 To install, build the source code from the repository by running the following command in your terminal:
 
 ```shell
+git clone https://github.com/JGuymont/vae-anomaly-detector.git
+cd vae-anomaly-detector
 python -m venv venv
 venv\Scripts\activate
 python -m pip install --upgrade pip
@@ -32,7 +34,9 @@ To reproduce the experiment without changing the configuration, you should save 
 
 Start by splitting the data into a training set and a test set.
 
-> python split_data.py --train_size 0.5
+```shell
+python split_data.py --train_size 0.5
+```
 
 Running this command in the terminal will create `train.csv` and a `test.csv` and save them in the directory `data/`. Note that you only need to run this command omce.
 
@@ -40,4 +44,6 @@ Running this command in the terminal will create `train.csv` and a `test.csv` an
 
 Train the model by running the flollowing command
 
-> python main.py -c 03 -t train -m boc -e 2
+```shell
+python main.py -c 03 -t train -m boc -e 2
+```
