@@ -19,7 +19,7 @@ class SpamDataset(Dataset):
         split: (list) list of float [train_pct, valid_pct, test_pct]
     """
     def __init__(self, csv_path, preprocess=None):
-        self._data = pd.read_table(csv_path, delimiter=',')
+        self._data = pd.read_table(csv_path, delimiter=',', encoding='latin-1')
         self._preprocess = preprocess
 
     def __len__(self):
