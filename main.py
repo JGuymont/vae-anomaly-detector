@@ -21,29 +21,26 @@ def argparser():
     """
     parser = argparse.ArgumentParser(description='VAE spam detector')
     parser.add_argument('--globals', type=str, default='./configs/globals.ini')
-    parser.add_argument('--model_common', type=str, default='./configs/common_boc.ini')
-    parser.add_argument('--model_specific', type=str, default='./configs/boc00.ini')
-    parser.add_argument('--model', type=str, choices=MODELS)
-    parser.add_argument('--config', type=str, default='01')
+    parser.add_argument('--model_common', type=str)
+    parser.add_argument('--model_specific', type=str)
     parser.add_argument('--n_epochs', '-e', type=int, default=None)
     parser.add_argument('--restore', type=int, default=None)
     parser.add_argument('--save', type=bool, default=True)
-    parser.add_argument('--device', type=str, default='cuda', choices=['cpu', 'cuda'])
     parser.add_argument('--task', '-t', type=str, default='train', choices=['train', 'eval', 'plot'])
-    parser.add_argument('--lr', type=float, default=None)
     return parser.parse_args()
 
 
 def load_config(args):
     """
-    Load json configuration file
+    Load .INI configuration files
     """
-    path = './configs/{}/config{}.json'.format(args.model, args.config)
-    config = json.load(open(path, 'r'))
+    config = ConfigParser()
+    config.read(args.globals)
+    config.read(args.model_common)
+    config.read(args.model_specific)
+    config.set('model', 'device', 'cuda' if torch.cuda.is_available() else 'cpu')
     if args.n_epochs is not None:
-        config['training']['n_epochs'] = args.n_epochs
-    if args.lr is not None:
-        config['training']['lr'] = args.lr
+        config.set('training', 'n_epochs', str(args.n_epochs))
     return config
 
 
@@ -55,12 +52,7 @@ def train(config, trainloader, devloader=None):
 
 if __name__ == '__main__':
     args = argparser()
-
-    config = ConfigParser()
-    config.read(args.globals)
-    config.read(args.model_common)
-    config.read(args.model_specific)
-    config.set('model', 'device', 'cuda' if torch.cuda.is_available() else 'cpu')
+    config = load_config(args)
 
     # Get data path
     data_dir = config.get("paths", "data_directory")
@@ -84,5 +76,11 @@ if __name__ == '__main__':
         shuffle=True,
         num_workers=0,
         pin_memory=False)
+
+    checkpoints_directory = os.path.join(
+        config['paths']['checkpoints_directory'],
+        '{}{}'.format(config['model']['name'], config['model']['config_id'])
+    )
+    os.makedirs(checkpoints_directory, exist_ok=True)
 
     train(config, trainloader)
