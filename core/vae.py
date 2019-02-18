@@ -176,11 +176,16 @@ class VAE(nn.Module):
     def _to_numpy(self, tensor):
         return tensor.data.cpu().numpy()
 
+    def poisson_cross_entropy(self, logtheta, inputs):
+        return - inputs * logtheta + torch.exp(logtheta)
+
     def loglikelihood(self, reduction):
         """
         Return the log-likelihood
         """
         if self._distr == 'poisson':
+            if reduction == 'none':
+                return self.poisson_cross_entropy
             return nn.PoissonNLLLoss(reduction=reduction)
         elif self._distr == 'bernoulli':
             return nn.BCELoss(reduction=reduction)
@@ -210,7 +215,7 @@ class VAE(nn.Module):
             for inputs, _ in trainloader:
                 inputs = inputs.to(self._device)
                 logtheta = self.forward(inputs)
-                loglikelihood = - self.loglikelihood(reduction='sum')(logtheta, inputs) / inputs.shape[0]
+                loglikelihood = -self.loglikelihood(reduction='sum')(logtheta, inputs) / inputs.shape[0]
                 kl_div = -0.5 * torch.sum(1 + self.logvar - self.mu.pow(2) - self.logvar.exp()) / inputs.shape[0]
                 loss = -loglikelihood + kl_div
                 loss.backward()
@@ -279,7 +284,7 @@ class VAE(nn.Module):
         with torch.no_grad():
             inputs = inputs.to(self._device)
             logtheta = self.forward(inputs)
-            log_likelihood = - torch.exp(logtheta) + inputs * logtheta
+            log_likelihood = -self.loglikelihood(reduction='none')(logtheta, inputs)
             log_likelihood = torch.sum(log_likelihood, 1)
             assert inputs.shape[0] == log_likelihood.shape[0]
             return self._to_numpy(log_likelihood)
