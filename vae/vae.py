@@ -130,10 +130,11 @@ class VAE(nn.Module):
     """
     VAE, x --> mu, log_sigma_sq --> N(mu, log_sigma_sq) --> z --> x
     """
-    def __init__(self, input_dim, config):
+    def __init__(self, input_dim, config, checkpoint_directory):
         super(VAE, self).__init__()
         self.config = config
-        self._model_name = config['model']['name']
+        self.model_name = '{}{}'.format(config['model']['name'], config['model']['config_id'])
+        self.checkpoint_directory = checkpoint_directory
         self._distr = config['model']['distribution']
         self._device = config['model']['device']
         self._encoder = Encoder(input_dim, config['model'])
@@ -153,6 +154,7 @@ class VAE(nn.Module):
         self.precentile_threshold = config.getfloat('model', 'threshold')
         self.threshold = None
 
+        self.cur_epoch = 0
         self._save_every = config.getint('model', 'save_every')
 
     def parameters(self):
@@ -192,11 +194,10 @@ class VAE(nn.Module):
         else:
             raise ValueError('{} is not a valid distribution'.format(self._distr))
 
-    def fit(self, trainloader, cur_epoch=None, print_every=1):
+    def fit(self, trainloader, print_every=1):
         """
         Train the neural network
         """
-        self.cur_epoch = 0 if cur_epoch is None else cur_epoch
 
         start_time = time.time()
 
@@ -213,6 +214,7 @@ class VAE(nn.Module):
             losses, kldivs, neglogliks = [], [], []
 
             for inputs, _ in trainloader:
+                self.train()
                 inputs = inputs.to(self._device)
                 logtheta = self.forward(inputs)
                 loglikelihood = -self.loglikelihood(reduction='sum')(logtheta, inputs) / inputs.shape[0]
@@ -231,7 +233,6 @@ class VAE(nn.Module):
 
             if (epoch + 1) % print_every == 0:
                 epoch_time = self._get_time(start_time, time.time())
-                self.eval()
                 f1, acc, prec, recall = self.evaluate(trainloader)
                 storage['precision'].append(prec)
                 storage['recall'].append(recall)
@@ -242,29 +243,29 @@ class VAE(nn.Module):
                     storage['kldiv'][-1],
                     epoch_time))
                 print('F1. {:.3f} | acc. {:.3f} | prec.: {:.3f} | rec. {:.3f}'.format(f1, acc, prec, recall))
-                self.train()
             
             if (epoch + 1) % self._save_every == 0:
-                self.save_checkpoint()
+                f1, acc, prec, recall = self.evaluate(trainloader)
+                self.save_checkpoint(f1)
 
         storage['log_densities'] = self._get_densities(trainloader)
         storage['params'] = self._get_parameters(trainloader)
-        with open('./results/{}.pkl'.format(self._model_name), 'wb') as _f:
+        with open('./results/{}.pkl'.format(self.model_name), 'wb') as _f:
             pickle.dump(storage, _f, pickle.HIGHEST_PROTOCOL)
-
-    def _remove_spam(self, dataloader, data):
-        idx_to_remove = self._find_threshold(dataloader)
-        data.pop(idx_to_remove)
-        self._encoder.initialize_parameters()
-        self._decoder.initialize_parameters()
-        self._optim = optim.Adam(self.parameters(), lr=self.lr, betas=(0.5, 0.999))
-        return data
 
     def _get_time(self, starting_time, current_time):
         total_time = current_time - starting_time
         minutes = round(total_time // 60)
         seconds = round(total_time % 60)
         return '{} min., {} sec.'.format(minutes, seconds)
+
+    # def _remove_spam(self, dataloader, data):
+    #    idx_to_remove = self._find_threshold(dataloader)
+    #    data.pop(idx_to_remove)
+    #    self._encoder.initialize_parameters()
+    #    self._decoder.initialize_parameters()
+    #    self._optim = optim.Adam(self.parameters(), lr=self.lr, betas=(0.5, 0.999))
+    #    return data
 
     def _get_parameters(self, dataloader):
         self.eval()
@@ -273,14 +274,22 @@ class VAE(nn.Module):
             inputs = inputs.to(self._device)
             logtheta = self._to_numpy(self.forward(inputs))
             parameters.extend(logtheta)
-        self.train()
         if self._distr == 'poisson':
             parameters = np.exp(np.array(parameters))
         else:
             parameters = np.array(parameters)
         return parameters
 
+    def _get_densities(self, dataloader):
+        all_log_densities = []
+        for inputs, _ in dataloader:
+            mini_batch_log_densities = self._evaluate_probability(inputs)
+            all_log_densities.extend(mini_batch_log_densities)
+        all_log_densities = np.array(all_log_densities)
+        return all_log_densities
+
     def _evaluate_probability(self, inputs):
+        self.eval()
         with torch.no_grad():
             inputs = inputs.to(self._device)
             logtheta = self.forward(inputs)
@@ -289,21 +298,31 @@ class VAE(nn.Module):
             assert inputs.shape[0] == log_likelihood.shape[0]
             return self._to_numpy(log_likelihood)
 
-    def _get_densities(self, dataloader):
-        self.eval()
-        all_log_densities = []
-        for inputs, _ in dataloader:
-            mini_batch_log_densities = self._evaluate_probability(inputs)
-            all_log_densities.extend(mini_batch_log_densities)
-        self.train()
-        all_log_densities = np.array(all_log_densities)
-        return all_log_densities
-
     def _find_threshold(self, dataloader):
         log_densities = self._get_densities(dataloader)
         lowest_density = np.argmin(log_densities)
         self.threshold = np.percentile(log_densities, self.precentile_threshold)
         return lowest_density
+
+    def evaluate(self, dataloader):
+        """
+        Evaluate accuracy.
+        """
+        self._find_threshold(dataloader)
+        predictions = []
+        ground_truth = []
+
+        for inputs, targets in dataloader:
+            pred = self.predict(inputs)
+            predictions.extend(pred)
+            ground_truth.extend(list(self._to_numpy(targets)))
+
+        f1 = f1_score(ground_truth, predictions)
+        accuracy = accuracy_score(ground_truth, predictions)
+        precision = precision_score(ground_truth, predictions)
+        recall = recall_score(ground_truth, predictions)
+
+        return f1, accuracy, precision, recall
 
     def predict(self, inputs):
         """
@@ -314,44 +333,12 @@ class VAE(nn.Module):
         predictions[log_density < self.threshold] = 1
         return list(predictions)
 
-    def evaluate(self, dataloader):
-        """
-        Evaluate accuracy.
-        """
-        self.eval()
-        self._find_threshold(dataloader)
-        predictions = []
-        ground_truth = []
-
-        for inputs, targets in dataloader:
-            pred = self.predict(inputs)
-            predictions.extend(pred)
-            ground_truth.extend(list(self._to_numpy(targets)))
-        self.train()
-
-        f1 = f1_score(ground_truth, predictions)
-        accuracy = accuracy_score(ground_truth, predictions)
-        precision = precision_score(ground_truth, predictions)
-        recall = recall_score(ground_truth, predictions)
-
-        return f1, accuracy, precision, recall
-
-    def evaluate_loss(self, dataloader):
-        loglikelihood, kl_div = 0., 0. 
-        for inputs, _ in dataloader:
-            inputs = inputs.to(self._device)
-            logtheta = self.forward(inputs)
-            loglikelihood += - self._to_numpy(self.loglikelihood(reduction='sum')(logtheta, inputs)) / inputs.shape[0]
-            kl_div += -0.5 * self._to_numpy(torch.sum(1 + self.logvar - self.mu.pow(2) - self.logvar.exp())) / inputs.shape[0]
-        return loglikelihood, kl_div
-
-    def save_checkpoint(self):
+    def save_checkpoint(self, f1_score):
         """Save model paramers under config['model_path']"""
-        model_path = '{}{}{}_{}.pt'.format(
-            self.config['paths']['checkpoints_directory'],
-            self.config['model']['name'],
-            self.config['model']['config_id'],
-            self.cur_epoch)
+        model_path = '{}/epoch_{}-f1_{}.pt'.format(
+            self.checkpoint_directory,
+            self.cur_epoch,
+            f1_score)
 
         checkpoint = {
             'model_state_dict': self.state_dict(),
@@ -363,11 +350,11 @@ class VAE(nn.Module):
         """
         Retore the model parameters
         """
-        model_path = './{}/{}{}_{}.pt'.format(
+        model_path = '{}{}_{}.pt'.format(
             self.config['paths']['checkpoints_directory'],
-            self.config['model']['name'],
-            self.config['model']['config_id'],
+            self.model_name,
             epoch)
         checkpoint = torch.load(model_path)
         self.load_state_dict(checkpoint['model_state_dict'])
         self._optim.load_state_dict(checkpoint['optimizer_state_dict'])
+        self.cur_epoch = epoch
