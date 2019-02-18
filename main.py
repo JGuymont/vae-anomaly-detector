@@ -2,34 +2,35 @@
 Main experiment
 """
 import json
+import os
 import argparse
-from core.data import Data
+import torch
+from torch.utils.data import DataLoader
+from configparser import ConfigParser
+
 from core.vae import VAE
-from core import utils
-from core.data import DataLoader
 from utils.data import SpamDataset
-from torchtext.data import TabularDataset, Field, Iterator
-
-
-MODELS = ['bow', 'binary_bow', 'boc']
+from utils.feature_extractor import FeatureExtractor
+from core import utils
+from constants import MODELS
 
 
 def argparser():
     """
     Command line argument parser
     """
-
     parser = argparse.ArgumentParser(description='VAE spam detector')
-
-    parser.add_argument('--model', '-m', type=str, choices=['bow', 'binary_bow', 'boc', 'all'])
-    parser.add_argument('--config', '-c', type=str, default='01')
+    parser.add_argument('--globals', type=str, default='./configs/globals.ini')
+    parser.add_argument('--model_common', type=str, default='./configs/common_boc.ini')
+    parser.add_argument('--model_specific', type=str, default='./configs/boc00.ini')
+    parser.add_argument('--model', type=str, choices=MODELS)
+    parser.add_argument('--config', type=str, default='01')
     parser.add_argument('--n_epochs', '-e', type=int, default=None)
     parser.add_argument('--restore', type=int, default=None)
     parser.add_argument('--save', type=bool, default=True)
     parser.add_argument('--device', type=str, default='cuda', choices=['cpu', 'cuda'])
     parser.add_argument('--task', '-t', type=str, default='train', choices=['train', 'eval', 'plot'])
     parser.add_argument('--lr', type=float, default=None)
-
     return parser.parse_args()
 
 
@@ -46,73 +47,42 @@ def load_config(args):
     return config
 
 
-def main(args):
-    """
-    Lunch the expriment
-    """
-    if args.task == 'train':
-        if args.model == 'all':
-            for model in MODELS:
-                args.model = model
-                config = load_config(args)
-                data = Data(config['data'])
-                data.vectorize()
-                vae = VAE(data.input_dim_, config, args.device).to(args.device)
-                if args.restore is not None:
-                    vae.restore_model(args.restore)
-                vae.fit(data.train, cur_epoch=args.restore)
-            return
-        config = load_config(args)
-        data = Data(config['data'])
-        data.vectorize()
-        print(data.data_size_)
-        exit()
-        vae = VAE(data.input_dim_, config, args.device).to(args.device)
-        if args.restore is not None:
-            vae.restore_model(args.restore)
-        vae.fit(data.train, cur_epoch=args.restore)
-    if args.task == 'plot':
-        models = ['{}{}'.format(model, args.config) for model in ['bow', 'binarybow', 'boc']]
-        precision, recall, logp, kldiv, log_densities, params = utils.load_results(args.config)
-        utils.plot_precision(precision, models, args.config)
-        utils.plot_recall(recall, models, args.config)
-        utils.plot_logp(logp, models, args.config)
-        utils.plot_kldiv(kldiv, models, args.config)
-        for model in models:
-            utils.hist_densities(log_densities[model], model)
-            utils.hist_param(params[model].reshape(-1), model)
-    if args.task == 'eval':
-        config = load_config(args)
-        data = Data(config['data'])
-        data.vectorize()
-        vae = VAE(data.input_dim_, config, args.device).to(args.device)
-        if args.restore is not None:
-            vae.restore_model(args.restore)
-        vae.eval()
-        testloader = DataLoader(data.test, batch_size=len(data.test))
-        precisions, recalls, logliks, kldivs = [], [], [], []
-        for _ in range(100):
-            _, _, precision, recall = vae.evaluate(testloader)
-            loglik, kldiv = vae.evaluate_loss(testloader)
-            precisions.append(precision)
-            recalls.append(recall)
-            logliks.append(loglik)
-            kldivs.append(kldiv)
-        print(utils.mean_confidence_interval(precisions))
-        print(utils.mean_confidence_interval(recalls))
-        print(utils.mean_confidence_interval(logliks))
-        print(utils.mean_confidence_interval(kldivs))
+def train(config, trainloader, devloader=None):
+    input_dim = trainloader.dataset.input_dim_
+    vae = VAE(input_dim, config).to(config['model']['device'])
+    vae.fit(trainloader)
 
-def tokenizer(string):
-    return [char for char in string]
 
 if __name__ == '__main__':
     args = argparser()
-    config = load_config(args)
 
-    data = SpamDataset(csv_path=config['data']['csv_path'])
+    config = ConfigParser()
+    config.read(args.globals)
+    config.read(args.model_common)
+    config.read(args.model_specific)
+    config.set('model', 'device', 'cuda' if torch.cuda.is_available() else 'cpu')
 
-    for x, y in data:
-        print(x, y)
-        print(tokenizer(x))
-        exit()
+    # Get data path
+    data_dir = config.get("paths", "data_directory")
+    train_data_file_name = config.get("paths", "train_data_file_name")
+    train_csv_path = os.path.join(data_dir, train_data_file_name)
+
+    # Set text processing function
+    transformer = FeatureExtractor(config)
+    raw_documents = transformer.get_raw_documents(train_csv_path)
+    transformer.fit(raw_documents)
+    transformer.log_vocabulary('data/vocab.txt')
+
+    train_data = SpamDataset(
+        train_csv_path,
+        label2int=json.loads(config.get("data", "label2int")),
+        transform=transformer.vectorize)
+
+    trainloader = DataLoader(
+        train_data,
+        batch_size=config.getint("training", "batch_size"),
+        shuffle=True,
+        num_workers=0,
+        pin_memory=False)
+
+    train(config, trainloader)
