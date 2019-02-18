@@ -143,7 +143,7 @@ class VAE(nn.Module):
         self.num_epochs = config.getint('training', 'n_epochs')
 
         self._optim = optim.Adam(
-            self.parameters(), 
+            self.parameters(),
             lr=config.getfloat('training', 'lr'),
             betas=json.loads(config['training']['betas'])
         )
@@ -243,7 +243,7 @@ class VAE(nn.Module):
                     storage['kldiv'][-1],
                     epoch_time))
                 print('F1. {:.3f} | acc. {:.3f} | prec.: {:.3f} | rec. {:.3f}'.format(f1, acc, prec, recall))
-            
+
             if (epoch + 1) % self._save_every == 0:
                 f1, acc, prec, recall = self.evaluate(trainloader)
                 self.save_checkpoint(f1)
