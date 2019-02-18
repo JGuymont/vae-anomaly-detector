@@ -7,11 +7,11 @@ import argparse
 import torch
 from torch.utils.data import DataLoader
 from configparser import ConfigParser
+from datetime import datetime
 
-from core.vae import VAE
+from vae.vae import VAE
 from utils.data import SpamDataset
 from utils.feature_extractor import FeatureExtractor
-from core import utils
 from constants import MODELS
 
 
@@ -45,8 +45,16 @@ def load_config(args):
 
 
 def train(config, trainloader, devloader=None):
+    current_time = datetime.now().strftime('%Y_%m_%d_%H_%M')
+    checkpoint_directory = os.path.join(
+        config['paths']['checkpoints_directory'],
+        '{}{}/'.format(config['model']['name'], config['model']['config_id']),
+        current_time)
+    os.makedirs(checkpoint_directory, exist_ok=True)
+
     input_dim = trainloader.dataset.input_dim_
-    vae = VAE(input_dim, config).to(config['model']['device'])
+    vae = VAE(input_dim, config, checkpoint_directory)
+    vae.to(config['model']['device'])
     vae.fit(trainloader)
 
 
@@ -76,11 +84,5 @@ if __name__ == '__main__':
         shuffle=True,
         num_workers=0,
         pin_memory=False)
-
-    checkpoints_directory = os.path.join(
-        config['paths']['checkpoints_directory'],
-        '{}{}'.format(config['model']['name'], config['model']['config_id'])
-    )
-    os.makedirs(checkpoints_directory, exist_ok=True)
 
     train(config, trainloader)

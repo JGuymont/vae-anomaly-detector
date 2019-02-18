@@ -1,6 +1,7 @@
 .vscode/
 .pylintrc
 venv
+*.sh
 
 # Latex
 latex/report.log

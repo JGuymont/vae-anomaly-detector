@@ -23,9 +23,9 @@ def make_plots(args):
     visualization.plot_recall(recall, models)
     visualization.plot_logp(logp, models)
     visualization.plot_kldiv(kldiv, models)
-    for model in models:
-        visualization.hist_densities(log_densities[model], model)
-        visualization.hist_param(params[model].reshape(-1), model)
+    # for model in models:
+    #    visualization.hist_densities(log_densities[model], model)
+    #    visualization.hist_param(params[model].reshape(-1), model)
 
 
 if __name__ == '__main__':
