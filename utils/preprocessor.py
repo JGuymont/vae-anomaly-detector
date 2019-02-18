@@ -61,11 +61,11 @@ class WordLevelPreprocessor:
         regex = re.compile(URL_REGEX, re.IGNORECASE)
         return regex.sub(' <url> ', string)
 
-    def _replace_one_letter_word(self, string):
-        for letter in list(ascii_lowercase):
+    def _replace_one_letter_word(self, text):
+        for letter in list(string.ascii_lowercase):
             regex = re.compile(r"\b[{}]\b".format(letter), re.IGNORECASE)
-            string = regex.sub('<{}>'.format(letter), string)
-        return string
+            text = regex.sub('<{}>'.format(letter), text)
+        return text
 
     def _replace_long_digit_seq(self, string):
         regex = re.compile(LONG_DIGIT_REGEX, re.IGNORECASE)
