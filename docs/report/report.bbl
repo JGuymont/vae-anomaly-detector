@@ -1,0 +1,20 @@
+\begin{thebibliography}{1}
+
+\bibitem{kingma2013auto}
+Diederik~P Kingma and Max Welling.
+\newblock Auto-encoding variational bayes.
+\newblock {\em arXiv preprint arXiv:1312.6114}, 2013.
+
+\bibitem{2014arXiv1412.6980K}
+Diederik~P. {Kingma} and Jimmy {Ba}.
+\newblock {Adam: A Method for Stochastic Optimization}.
+\newblock {\em arXiv e-prints}, page arXiv:1412.6980, December 2014.
+
+\bibitem{NIPS2014_5352}
+Durk~P Kingma, Shakir Mohamed, Danilo Jimenez~Rezende, and Max Welling.
+\newblock Semi-supervised learning with deep generative models.
+\newblock In Z.~Ghahramani, M.~Welling, C.~Cortes, N.~D. Lawrence, and K.~Q.
+  Weinberger, editors, {\em Advances in Neural Information Processing Systems
+  27}, pages 3581--3589. Curran Associates, Inc., 2014.
+
+\end{thebibliography}
