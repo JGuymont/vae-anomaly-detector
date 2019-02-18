@@ -4,14 +4,15 @@ Pytorch Variational Autoendoder Network Implementation
 """
 from itertools import chain
 import time
+import json
 import pickle
 import numpy as np
 import torch
 from torch.autograd import Variable
 from torch import nn
 from torch import optim
+from torch.nn import functional as F
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
-from core.data import DataLoader
 
 
 class Encoder(nn.Module):
@@ -30,9 +31,15 @@ class Encoder(nn.Module):
     """
     def __init__(self, input_dim, config):
         super(Encoder, self).__init__()
-        config['encoder'][0]['in_features'] = input_dim
+
+        config_encoder = json.loads(config.get("encoder"))
+        config_read_mu = json.loads(config.get("read_mu"))
+        config_read_logvar = json.loads(config.get("read_sigma"))
+
+        config_encoder[0]['in_features'] = input_dim
+
         encoder_network = []
-        for layer in config['encoder']:
+        for layer in config_encoder:
             if layer['type'] == 'linear':
                 encoder_network.append(nn.Linear(layer['in_features'], layer['out_features']))
             elif layer['type'] == 'relu':
@@ -43,9 +50,10 @@ class Encoder(nn.Module):
                 encoder_network.append(nn.Dropout(layer['rate']))
             elif layer['type'] == 'batch_norm':
                 encoder_network.append(nn.BatchNorm1d(layer['num_features']))
+
         self.encoder_network = nn.Sequential(*encoder_network)
-        self.read_mu = nn.Linear(config['read_mu']['in_features'], config['latent_dim'])
-        self.read_logvar = nn.Linear(config['read_sigma']['in_features'], config['latent_dim'])
+        self.read_mu = nn.Linear(config_read_mu['in_features'], config.getint('latent_dim'))
+        self.read_logvar = nn.Linear(config_read_logvar['in_features'], config.getint('latent_dim'))
         self.initialize_parameters()
 
     def initialize_parameters(self):
@@ -64,8 +72,9 @@ class Encoder(nn.Module):
         """
         hidden_state = self.encoder_network(inputs)
         mean = self.read_mu(hidden_state)
-        logvar = self.read_logvar(hidden_state) 
+        logvar = self.read_logvar(hidden_state)
         return mean, logvar
+
 
 class Decoder(nn.Module):
     """
@@ -73,10 +82,11 @@ class Decoder(nn.Module):
     """
     def __init__(self, input_dim, config):
         super(Decoder, self).__init__()
+        config_decoder = json.loads(config.get("decoder"))
         self._distr = config['distribution']
 
         decoder_network = []
-        for layer in config['decoder']:
+        for layer in config_decoder:
             if layer['type'] == 'linear':
                 decoder_network.append(nn.Linear(layer['in_features'], layer['out_features']))
             elif layer['type'] == 'relu':
@@ -96,7 +106,7 @@ class Decoder(nn.Module):
         self.decoder = nn.Sequential(*decoder_network)
         if self._distr == 'poisson':
             self.read_alpha = nn.Sequential(
-                nn.Linear(config['latent_dim'], input_dim),
+                nn.Linear(config.getint('latent_dim'), input_dim),
                 nn.ReLU6()
             )
         self.initialize_parameters()
@@ -104,7 +114,7 @@ class Decoder(nn.Module):
     def initialize_parameters(self):
         for layer in self.modules():
             if isinstance(layer, nn.Linear):
-                bound = 1/np.sqrt(layer.in_features)
+                bound = 1 / np.sqrt(layer.in_features)
                 layer.weight.data.uniform_(-bound, bound)
                 layer.bias.data.zero_()
 
@@ -115,29 +125,35 @@ class Decoder(nn.Module):
         else:
             return self.decoder(z)
 
+
 class VAE(nn.Module):
     """
     VAE, x --> mu, log_sigma_sq --> N(mu, log_sigma_sq) --> z --> x
     """
-    def __init__(self, input_dim, config, device):
+    def __init__(self, input_dim, config):
         super(VAE, self).__init__()
         self.config = config
-        self._model_name = config['name']
+        self._model_name = config['model']['name']
         self._distr = config['model']['distribution']
-        self._device = device
+        self._device = config['model']['device']
         self._encoder = Encoder(input_dim, config['model'])
         self._decoder = Decoder(input_dim, config['model'])
 
-        self.batch_size = config['training']['batch_size']
-        self.num_epochs = config['training']['n_epochs']
+        self.num_epochs = config.getint('training', 'n_epochs')
 
-        self._optim = optim.Adam(self.parameters(), lr=config['training']['lr'], betas=config['training']['betas'])
+        self._optim = optim.Adam(
+            self.parameters(), 
+            lr=config.getfloat('training', 'lr'),
+            betas=json.loads(config['training']['betas'])
+        )
 
         self.mu = None
         self.logvar = None
 
-        self.precentile_threshold = config['model']['threshold']
+        self.precentile_threshold = config.getfloat('model', 'threshold')
         self.threshold = None
+
+        self._save_every = config.getint('model', 'save_every')
 
     def parameters(self):
         return chain(self._encoder.parameters(), self._decoder.parameters())
@@ -168,11 +184,10 @@ class VAE(nn.Module):
             return nn.PoissonNLLLoss(reduction=reduction)
         elif self._distr == 'bernoulli':
             return nn.BCELoss(reduction=reduction)
-        else: 
+        else:
             raise ValueError('{} is not a valid distribution'.format(self._distr))
 
-
-    def fit(self, data, cur_epoch=None, print_every=1):
+    def fit(self, trainloader, cur_epoch=None, print_every=1):
         """
         Train the neural network
         """
@@ -185,16 +200,14 @@ class VAE(nn.Module):
             'precision': [], 'recall': [], 'log_densities': None, 'params': None
         }
 
-        dataloader = DataLoader(data, batch_size=self.batch_size)
-
-        for epoch in range(self.cur_epoch, self.cur_epoch+self.num_epochs):
+        for epoch in range(self.cur_epoch, self.cur_epoch + self.num_epochs):
 
             self.cur_epoch += 1
 
             # temporary storage
             losses, kldivs, neglogliks = [], [], []
 
-            for inputs, _ in dataloader:
+            for inputs, _ in trainloader:
                 inputs = inputs.to(self._device)
                 logtheta = self.forward(inputs)
                 loglikelihood = - self.loglikelihood(reduction='sum')(logtheta, inputs) / inputs.shape[0]
@@ -211,27 +224,28 @@ class VAE(nn.Module):
             storage['kldiv'].append(np.mean(kldivs))
             storage['-logp(x|z)'].append(np.mean(neglogliks))
 
-            if (epoch+1) % print_every == 0:
+            if (epoch + 1) % print_every == 0:
                 epoch_time = self._get_time(start_time, time.time())
                 self.eval()
-                f1, acc, prec, recall = self.evaluate(dataloader)
+                f1, acc, prec, recall = self.evaluate(trainloader)
                 storage['precision'].append(prec)
                 storage['recall'].append(recall)
                 print('epoch: {} | loss: {:.3f} | -logp(x|z): {:.3f} | kldiv: {:.3f} | time: {}'.format(
-                    epoch+1,
+                    epoch + 1,
                     storage['loss'][-1],
                     storage['-logp(x|z)'][-1],
                     storage['kldiv'][-1],
                     epoch_time))
                 print('F1. {:.3f} | acc. {:.3f} | prec.: {:.3f} | rec. {:.3f}'.format(f1, acc, prec, recall))
-                self.train() # Put model back in train mode
+                self.train()
+            
+            if (epoch + 1) % self._save_every == 0:
+                self.save_checkpoint()
 
-        storage['log_densities'] = self._get_densities(dataloader)
-        storage['params'] = self._get_parameters(dataloader)
+        storage['log_densities'] = self._get_densities(trainloader)
+        storage['params'] = self._get_parameters(trainloader)
         with open('./results/{}.pkl'.format(self._model_name), 'wb') as _f:
             pickle.dump(storage, _f, pickle.HIGHEST_PROTOCOL)
-
-        self.save()
 
     def _remove_spam(self, dataloader, data):
         idx_to_remove = self._find_threshold(dataloader)
@@ -240,7 +254,6 @@ class VAE(nn.Module):
         self._decoder.initialize_parameters()
         self._optim = optim.Adam(self.parameters(), lr=self.lr, betas=(0.5, 0.999))
         return data
-
 
     def _get_time(self, starting_time, current_time):
         total_time = current_time - starting_time
@@ -263,21 +276,23 @@ class VAE(nn.Module):
         return parameters
 
     def _evaluate_probability(self, inputs):
-        inputs = inputs.to(self._device)
-        logtheta = self.forward(inputs)
-        log_likelihood = - self.loglikelihood(reduction='none')(logtheta, inputs)
-        log_likelihood = torch.sum(log_likelihood, 1)
-        return self._to_numpy(log_likelihood)
+        with torch.no_grad():
+            inputs = inputs.to(self._device)
+            logtheta = self.forward(inputs)
+            log_likelihood = - torch.exp(logtheta) + inputs * logtheta
+            log_likelihood = torch.sum(log_likelihood, 1)
+            assert inputs.shape[0] == log_likelihood.shape[0]
+            return self._to_numpy(log_likelihood)
 
     def _get_densities(self, dataloader):
         self.eval()
-        log_densities = []
+        all_log_densities = []
         for inputs, _ in dataloader:
-            log_density = self._evaluate_probability(inputs)
-            log_densities.extend(log_density)
+            mini_batch_log_densities = self._evaluate_probability(inputs)
+            all_log_densities.extend(mini_batch_log_densities)
         self.train()
-        log_densities = np.array(log_densities)
-        return log_densities
+        all_log_densities = np.array(all_log_densities)
+        return all_log_densities
 
     def _find_threshold(self, dataloader):
         log_densities = self._get_densities(dataloader)
@@ -307,7 +322,7 @@ class VAE(nn.Module):
             pred = self.predict(inputs)
             predictions.extend(pred)
             ground_truth.extend(list(self._to_numpy(targets)))
-        self.train() # Put model back in train mode
+        self.train()
 
         f1 = f1_score(ground_truth, predictions)
         accuracy = accuracy_score(ground_truth, predictions)
@@ -325,9 +340,14 @@ class VAE(nn.Module):
             kl_div += -0.5 * self._to_numpy(torch.sum(1 + self.logvar - self.mu.pow(2) - self.logvar.exp())) / inputs.shape[0]
         return loglikelihood, kl_div
 
-    def save(self):
+    def save_checkpoint(self):
         """Save model paramers under config['model_path']"""
-        model_path = './{}/{}_{}.pt'.format(self.config['model']['save_dir'], self.config['name'], self.cur_epoch)
+        model_path = '{}{}{}_{}.pt'.format(
+            self.config['paths']['checkpoints_directory'],
+            self.config['model']['name'],
+            self.config['model']['config_id'],
+            self.cur_epoch)
+
         checkpoint = {
             'model_state_dict': self.state_dict(),
             'optimizer_state_dict': self._optim.state_dict()
@@ -338,7 +358,11 @@ class VAE(nn.Module):
         """
         Retore the model parameters
         """
-        model_path = './{}/{}_{}.pt'.format(self.config['model']['save_dir'], self.config['name'], epoch)
+        model_path = './{}/{}{}_{}.pt'.format(
+            self.config['paths']['checkpoints_directory'],
+            self.config['model']['name'],
+            self.config['model']['config_id'],
+            epoch)
         checkpoint = torch.load(model_path)
         self.load_state_dict(checkpoint['model_state_dict'])
         self._optim.load_state_dict(checkpoint['optimizer_state_dict'])
