@@ -20,13 +20,26 @@ def argparser():
     Command line argument parser
     """
     parser = argparse.ArgumentParser(description='VAE spam detector')
-    parser.add_argument('--globals', type=str, default='./configs/globals.ini')
-    parser.add_argument('--model_common', type=str)
-    parser.add_argument('--model_specific', type=str)
-    parser.add_argument('--n_epochs', '-e', type=int, default=None)
-    parser.add_argument('--restore', type=int, default=None)
-    parser.add_argument('--save', type=bool, default=True)
-    parser.add_argument('--task', '-t', type=str, default='train', choices=['train', 'eval', 'plot'])
+    parser.add_argument('--model', type=str, required=True)
+    parser.add_argument(
+        '--globals', type=str, default='./configs/globals.ini', 
+        help="Path to the configuration file containing the global variables "
+             "e.g. the paths to the data etc. See configs/globals.ini for an "
+             "example."
+    )
+    parser.add_argument(
+        '--config', type=str, default=None,
+        help="Id of the model configuration file. If this argument is not null, "
+             "the system will look for the configuration file "
+             "./configs/{args.model}/{args.model}{args.config}.ini"
+    )
+    parser.add_argument(
+        '--restore', type=str, default=None, 
+        help="Path to a model checkpoint containing trained parameters. " 
+             "If provided, the model will load the trained parameters before "
+             "resuming training or making a prediction. By default, models are "
+             "saved in ./checkpoints/<args.model><args.config>/<date>/"
+    )
     return parser.parse_args()
 
 
@@ -35,9 +48,23 @@ def load_config(args):
     Load .INI configuration files
     """
     config = ConfigParser()
+
+    # Load global variable (e.g. paths)
     config.read(args.globals)
-    config.read(args.model_common)
-    config.read(args.model_specific)
+
+    # Path to the directory containing the model configurations
+    model_config_dir = os.path.join(config['paths']['configs_directory'], '{}/'.format(args.model))
+
+    # Load default model configuration
+    default_model_config_filename = '{}.ini'.format(args.model)
+    default_model_config_path = os.path.join(model_config_dir, default_model_config_filename)
+    config.read(default_model_config_path)
+
+    if args.config:
+        model_config_filename = '{}{}.ini'.format(args.model, args.config)
+        model_config_path = os.path.join(model_config_dir, model_config_filename)
+        config.read(model_config_path)
+
     config.set('model', 'device', 'cuda' if torch.cuda.is_available() else 'cpu')
     if args.n_epochs is not None:
         config.set('training', 'n_epochs', str(args.n_epochs))
@@ -61,6 +88,8 @@ def train(config, trainloader, devloader=None):
 if __name__ == '__main__':
     args = argparser()
     config = load_config(args)
+    print(config['model']['config_id'])
+    exit()
 
     # Get data path
     data_dir = config.get("paths", "data_directory")

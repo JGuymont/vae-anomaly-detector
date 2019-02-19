@@ -2,6 +2,12 @@
 
 Please do not fork or clone this repo. The code is broken.
 
+# TODO
+- CHANGE THE CONFIGURATION PATTERN
+- ADD A SETUP.py
+- add info about models in README
+- add training an plotting command
+
 # VAE Anomaly Detector
 
 Code accompanying this [project](https://github.com/JGuymont/vae-anomaly-detector/blob/master/latex/report.pdf).
@@ -45,5 +51,5 @@ Running this command in the terminal will create `train.csv` and a `test.csv` an
 Train the model by running the flollowing command
 
 ```shell
-python main.py -c 03 -t train -m boc -e 2
+python main.py --model boc
 ```
