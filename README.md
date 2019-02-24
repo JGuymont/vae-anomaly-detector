@@ -1,16 +1,6 @@
-**THE CODE IS BROKEN**
-
-Please do not fork or clone this repo. The code is broken.
-
-# TODO
-- CHANGE THE CONFIGURATION PATTERN
-- ADD A SETUP.py
-- add info about models in README
-- add training an plotting command
-
 # VAE Anomaly Detector
 
-Code accompanying this [project](https://github.com/JGuymont/vae-anomaly-detector/blob/master/latex/report.pdf).
+Code accompanying this [project](https://github.com/JGuymont/vae-anomaly-detector/blob/master/docs/report/report.pdf).
 
 ## Installation
 
