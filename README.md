@@ -17,6 +17,17 @@ cd vae-anomaly-detector
 python -m venv venv
 venv\Scripts\activate
 python -m pip install --upgrade pip
+```
+
+Install Pytorch (see [website](https://pytorch.org/) for GPU supported installation):
+
+```shell
+pip install torch==1.2.0+cpu torchvision==0.4.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
+```
+
+Install other requirements:
+
+```shell
 pip install -r requirements.txt
 ```
 
