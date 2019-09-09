@@ -7,6 +7,8 @@ import torch
 from torch.autograd import Variable
 from torch import nn
 
+from torch.nn.functional import poisson_nll_loss
+
 from .encoder import Encoder
 from .decoder import Decoder
 
