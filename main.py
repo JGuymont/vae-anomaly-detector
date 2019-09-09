@@ -40,6 +40,10 @@ def argparser():
              "resuming training or making a prediction. By default, models are "
              "saved in ./checkpoints/<args.model><args.config>/<date>/"
     )
+    parser.add_argument(
+        '--n_epochs', type=int, default=None,
+        help="Maximum number of training iterations."
+    )
     return parser.parse_args()
 
 
@@ -88,8 +92,6 @@ def train(config, trainloader, devloader=None):
 if __name__ == '__main__':
     args = argparser()
     config = load_config(args)
-    print(config['model']['config_id'])
-    exit()
 
     # Get data path
     data_dir = config.get("paths", "data_directory")
